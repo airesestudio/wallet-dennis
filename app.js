@@ -1,0 +1,814 @@
+/* ==========================================================================
+   WEALTHFLOW - APPLICATION SCRIPT (STITCH INTEGRATED SPA LOGIC)
+   ========================================================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Initial State ---
+    let state = {
+        isLoggedIn: true,
+        user: {
+            name: "Dennis A.",
+            alias: "dennis.wallet"
+        },
+        wallets: {
+            Galicia: 2850400.42,
+            MercadoPago: 1240500.00,
+            PayPal: 450.00, // USD
+            Prex: 1500.00
+        },
+        exchangeRate: 1000, // ARS per USD for consolidated totals
+        transactions: [
+            { id: 1, type: 'outgoing', title: 'Coto Supermercados', amount: 45200.00, wallet: 'MercadoPago', date: 'Hoy • 14:20', category: 'Alimentación' },
+            { id: 2, type: 'incoming', title: 'Transferencia Recibida', amount: 120000.00, wallet: 'Banco Galicia', date: 'Ayer • 09:15', category: 'Ingreso' },
+            { id: 3, type: 'outgoing', title: 'Adobe Subscription', amount: 20.99, wallet: 'PayPal', date: '22 May', category: 'Servicios', isUSD: true },
+            { id: 4, type: 'outgoing', title: 'Kentucky Pizza', amount: 8400.00, wallet: 'MercadoPago', date: '21 May', category: 'Alimentación' },
+            { id: 5, type: 'outgoing', title: 'Supermercado Jumbo', amount: 12450.00, wallet: 'Banco Galicia', date: 'Hace 2 horas', category: 'Alimentación' },
+            { id: 6, type: 'outgoing', title: 'Netflix Streaming', amount: 4800.00, wallet: 'MercadoPago', date: 'Ayer • 18:42', category: 'Servicios' },
+            { id: 7, type: 'outgoing', title: 'Combustible Shell', amount: 25000.00, wallet: 'Banco Galicia', date: '24 May • 10:15', category: 'Ocio' }
+        ],
+        bills: [
+            { id: 'bill-1', name: 'Alquiler Depto', amount: 120000.00, date: 'VENCE EN 2 DÍAS', category: 'Alquiler', status: 'overdue' },
+            { id: 'bill-2', name: 'Servicio Internet (Fibertel)', amount: 6800.00, date: 'Vence hoy', category: 'Servicios', status: 'overdue' },
+            { id: 'bill-3', name: 'Tarjeta Visa Gold', amount: 145300.00, date: 'Vence en 4 días', category: 'Tarjetas', status: 'upcoming' },
+            { id: 'bill-4', name: 'Osde 310 - Salud', amount: 42500.00, date: 'Vence en 6 días', category: 'Servicios', status: 'upcoming' },
+            { id: 'bill-5', name: 'Patente Automotor', amount: 18900.00, date: 'Vence en 10 días', category: 'Impuestos', status: 'upcoming' }
+        ],
+        loans: [
+            { id: 'loan-1', type: 'receivable', name: 'Juan Pérez', amount: 15000.00, desc: 'Vence en 2 días', status: 'PENDIENTE' },
+            { id: 'loan-2', type: 'payable', name: 'María García', amount: 8200.00, desc: 'Vence en 5 días', status: 'PARCIAL' }
+        ],
+        webhookUrl: 'https://dennis.wallet.com/webhooks',
+        theme: 'light'
+    };
+
+    // --- LocalStorage Integration ---
+    function loadState() {
+        const saved = localStorage.getItem('wealthflow_state');
+        if (saved) {
+            try {
+                state = JSON.parse(saved);
+            } catch (e) {
+                console.error("Error reading storage:", e);
+            }
+        }
+    }
+
+    function saveState() {
+        localStorage.setItem('wealthflow_state', JSON.stringify(state));
+    }
+
+    // --- Currency Formatter ---
+    function formatMoney(amount, isUSD = false) {
+        return (isUSD ? 'u$s ' : '$ ') + amount.toLocaleString('es-AR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // --- Dynamic Render Functions ---
+
+    // 1. Render Wallet Balances & Consolidated Total
+    function renderBalances() {
+        // Calculate consolidated total in ARS
+        const totalARS = state.wallets.Galicia + state.wallets.MercadoPago + state.wallets.Prex;
+        // Total including PayPal converted to ARS
+        const totalCombined = totalARS + (state.wallets.PayPal * state.exchangeRate);
+
+        // Update Consolidated balance labels
+        document.getElementById('dash-total-balance').textContent = formatMoney(totalCombined);
+        document.getElementById('acc-total-balance').textContent = formatMoney(totalCombined);
+
+        // Update individual wallet displays
+        document.getElementById('dash-galicia-balance').textContent = formatMoney(state.wallets.Galicia);
+        document.getElementById('dash-mp-balance').textContent = formatMoney(state.wallets.MercadoPago);
+
+        document.getElementById('acc-galicia-balance').textContent = formatMoney(state.wallets.Galicia);
+        document.getElementById('acc-mp-balance').textContent = formatMoney(state.wallets.MercadoPago);
+        document.getElementById('acc-paypal-balance').textContent = formatMoney(state.wallets.PayPal, true);
+        document.getElementById('acc-prex-balance').textContent = formatMoney(state.wallets.Prex);
+
+        // Check low balance warnings
+        const prexStatus = document.getElementById('acc-prex-status');
+        if (state.wallets.Prex < 5000) {
+            prexStatus.textContent = 'Saldo Bajo';
+            prexStatus.className = 'px-xs py-base bg-error-container text-on-error-container rounded-full font-label-md text-label-md';
+        } else {
+            prexStatus.textContent = 'Activa';
+            prexStatus.className = 'px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md';
+        }
+
+        const mpStatus = document.getElementById('acc-mp-status');
+        if (state.wallets.MercadoPago < 5000) {
+            mpStatus.textContent = 'Saldo Bajo';
+            mpStatus.className = 'px-xs py-base bg-error-container text-on-error-container rounded-full font-label-md text-label-md';
+        } else {
+            mpStatus.textContent = 'Activa';
+            mpStatus.className = 'px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md';
+        }
+    }
+
+    // 2. Render Transactions
+    function renderTransactions() {
+        const dashContainer = document.getElementById('dash-recent-transactions');
+        const accContainer = document.getElementById('acc-transactions-list');
+
+        dashContainer.innerHTML = '';
+        accContainer.innerHTML = '';
+
+        if (state.transactions.length === 0) {
+            const emptyState = `<p class="p-md text-center text-on-surface-variant font-body-sm">No hay transacciones registradas.</p>`;
+            dashContainer.innerHTML = emptyState;
+            accContainer.innerHTML = emptyState;
+            return;
+        }
+
+        // Render Dashboard (limit to first 3)
+        state.transactions.slice(0, 3).forEach(tx => {
+            const isIncoming = tx.type === 'incoming';
+            const icon = tx.category === 'Alimentación' ? 'shopping_cart' : (tx.category === 'Servicios' ? 'receipt' : (tx.category === 'Ocio' ? 'directions_car' : 'work'));
+            const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container';
+
+            const item = document.createElement('div');
+            item.className = 'p-md flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer group';
+            item.innerHTML = `
+                <div class="flex items-center gap-md">
+                    <div class="w-10 h-10 rounded-full ${colorClass} flex items-center justify-center relative overflow-hidden">
+                        <span class="material-symbols-outlined">${icon}</span>
+                    </div>
+                    <div>
+                        <p class="font-body-md text-on-surface font-bold">${tx.title}</p>
+                        <div class="flex items-center gap-xs">
+                            <p class="font-body-sm text-on-surface-variant">${tx.date}</p>
+                            <span class="w-1 h-1 rounded-full bg-outline"></span>
+                            <p class="font-body-sm text-on-surface-variant">${tx.wallet}</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="font-tabular-nums ${isIncoming ? 'text-secondary' : 'text-tertiary-container'} font-bold">
+                    ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
+                </p>
+            `;
+            dashContainer.appendChild(item);
+        });
+
+        // Render Accounts tab (all transactions)
+        state.transactions.forEach(tx => {
+            const isIncoming = tx.type === 'incoming';
+            const icon = tx.category === 'Alimentación' ? 'shopping_bag' : (tx.category === 'Servicios' ? 'cloud_done' : (tx.category === 'Ocio' ? 'restaurant' : 'payments'));
+            const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container-high';
+
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-sm hover:bg-surface-container-low rounded-lg transition-colors group';
+            item.innerHTML = `
+                <div class="flex items-center gap-md">
+                    <div class="w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:bg-white transition-colors">
+                        <span class="material-symbols-outlined">${icon}</span>
+                    </div>
+                    <div>
+                        <p class="font-body-md text-body-md font-bold text-on-surface">${tx.title}</p>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">${tx.date} • ${tx.wallet}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-body-md text-body-md font-bold ${isIncoming ? 'text-secondary' : 'text-error'} font-tabular-nums">
+                        ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
+                    </p>
+                    <p class="font-label-md text-label-md text-outline uppercase tracking-wider">${tx.category}</p>
+                </div>
+            `;
+            accContainer.appendChild(item);
+        });
+    }
+
+    // 3. Render Bills & Obligations
+    function renderBills() {
+        const dashBills = document.getElementById('dash-upcoming-bills');
+        const payTodayList = document.getElementById('pay-today-list');
+        const listOverdue = document.getElementById('list-overdue');
+        const listUpcoming = document.getElementById('list-upcoming');
+
+        dashBills.innerHTML = '';
+        payTodayList.innerHTML = '';
+        listOverdue.innerHTML = '';
+        listUpcoming.innerHTML = '';
+
+        const overdue = state.bills.filter(b => b.status === 'overdue');
+        const upcoming = state.bills.filter(b => b.status === 'upcoming');
+
+        // Update counts
+        document.getElementById('pay-today-count').textContent = String(overdue.length).padStart(2, '0');
+        document.getElementById('count-overdue').textContent = overdue.length;
+        document.getElementById('count-upcoming').textContent = upcoming.length;
+
+        // Render Dashboard Upcoming Bills (limit to 2)
+        state.bills.slice(0, 2).forEach(bill => {
+            const isOverdue = bill.status === 'overdue';
+            const item = document.createElement('div');
+            item.className = `flex items-center justify-between p-sm rounded-lg ${isOverdue ? 'bg-error-container/20 border border-error/10' : 'bg-surface-container-low border border-outline-variant/30'}`;
+            item.innerHTML = `
+                <div class="flex items-center gap-sm">
+                    <div class="w-8 h-8 rounded-full ${isOverdue ? 'bg-error text-white' : 'bg-outline-variant text-on-surface-variant'} flex items-center justify-center">
+                        <span class="material-symbols-outlined text-sm">${isOverdue ? 'priority_high' : 'wifi'}</span>
+                    </div>
+                    <div>
+                        <p class="font-label-md text-on-surface font-bold">${bill.name}</p>
+                        <p class="text-[10px] ${isOverdue ? 'text-error font-bold' : 'text-on-surface-variant uppercase'}">${bill.date}</p>
+                    </div>
+                </div>
+                <p class="font-tabular-nums font-bold text-on-surface">${formatMoney(bill.amount, bill.isUSD)}</p>
+            `;
+            dashBills.appendChild(item);
+        });
+
+        // Render "Vence Hoy" list on Payments Tab
+        overdue.forEach(bill => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-sm bg-surface-container-low rounded-lg border-l-4 border-error';
+            item.innerHTML = `
+                <div>
+                    <p class="text-sm font-bold">${bill.name}</p>
+                    <p class="text-xs text-on-surface-variant">${bill.date}</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="font-tabular-nums text-headline-sm text-primary">${formatMoney(bill.amount, bill.isUSD)}</span>
+                    <button class="btn-quick-pay text-xs font-bold text-primary hover:underline" data-id="${bill.id}">PAGAR</button>
+                </div>
+            `;
+            payTodayList.appendChild(item);
+        });
+
+        if (overdue.length === 0) {
+            payTodayList.innerHTML = `<p class="p-xs text-center text-on-surface-variant text-xs">¡No tienes pagos vencidos para hoy!</p>`;
+        }
+
+        // Render Chronological List: Overdue
+        overdue.forEach(bill => {
+            const item = document.createElement('div');
+            item.className = 'bg-surface-container-low/40 rounded-xl border border-error/20 p-sm hover:shadow-md transition-all group cursor-pointer';
+            item.innerHTML = `
+                <div class="flex items-center gap-md">
+                    <div class="w-12 h-12 rounded-xl bg-error-container flex items-center justify-center text-on-error-container">
+                        <span class="material-symbols-outlined">wifi</span>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center justify-between">
+                            <p class="font-body-lg font-bold text-on-surface">${bill.name}</p>
+                            <p class="font-tabular-nums text-body-lg font-bold text-error">${formatMoney(bill.amount, bill.isUSD)}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-on-surface-variant">${bill.date}</p>
+                            <button class="btn-quick-pay text-xs font-bold text-primary group-hover:underline" data-id="${bill.id}">PAGAR AHORA</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            listOverdue.appendChild(item);
+        });
+
+        if (overdue.length === 0) {
+            listOverdue.innerHTML = `<p class="p-sm text-on-surface-variant font-body-sm text-center">Sin obligaciones vencidas.</p>`;
+        }
+
+        // Render Chronological List: Upcoming
+        upcoming.forEach(bill => {
+            const item = document.createElement('div');
+            item.className = 'bg-surface-container-low/40 rounded-xl border border-outline-variant p-sm hover:bg-surface-container-low transition-all cursor-pointer';
+            item.innerHTML = `
+                <div class="flex items-center gap-md">
+                    <div class="w-12 h-12 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">credit_card</span>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center justify-between">
+                            <p class="font-body-md font-bold text-on-surface">${bill.name}</p>
+                            <p class="font-tabular-nums text-body-md font-bold text-primary">${formatMoney(bill.amount, bill.isUSD)}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-on-surface-variant">${bill.date}</p>
+                            <div class="flex items-center gap-xs">
+                                <span class="text-[10px] bg-secondary/10 text-secondary px-2 py-0.5 rounded-full font-bold">MANUAL</span>
+                                <button class="btn-quick-pay text-xs font-bold text-primary hover:underline ml-sm" data-id="${bill.id}">PAGAR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            listUpcoming.appendChild(item);
+        });
+
+        if (upcoming.length === 0) {
+            listUpcoming.innerHTML = `<p class="p-sm text-on-surface-variant font-body-sm text-center">Sin obligaciones pendientes.</p>`;
+        }
+
+        // Bind quick pay triggers
+        document.querySelectorAll('.btn-quick-pay').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const billId = btn.getAttribute('data-id');
+                openPayBillModal(billId);
+            });
+        });
+    }
+
+    // 4. Render P2P Loans
+    function renderLoans() {
+        const loanContainer = document.getElementById('pay-p2p-list');
+        loanContainer.innerHTML = '';
+
+        state.loans.forEach(loan => {
+            const isReceivable = loan.type === 'receivable';
+            const colorClass = isReceivable ? 'bg-secondary-container/20 border border-secondary/15' : 'bg-tertiary-fixed/30 border border-tertiary/15';
+            const icon = isReceivable ? 'north_east' : 'south_west';
+            const iconColor = isReceivable ? 'text-secondary' : 'text-on-tertiary-container';
+            const avatarColor = isReceivable ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-fixed text-on-tertiary-fixed';
+            const textClass = isReceivable ? 'text-secondary' : 'text-on-tertiary-container';
+            const avatarInitials = loan.name.split(' ').map(n => n[0]).join('');
+
+            const item = document.createElement('div');
+            item.className = `p-sm rounded-lg ${colorClass}`;
+            item.innerHTML = `
+                <div class="flex items-center justify-between mb-xs">
+                    <span class="text-xs font-bold ${textClass} uppercase">${isReceivable ? 'A Cobrar' : 'Por Pagar'}</span>
+                    <span class="material-symbols-outlined text-sm ${iconColor}">${icon}</span>
+                </div>
+                <div class="flex items-center gap-sm">
+                    <div class="w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center font-bold">${avatarInitials}</div>
+                    <div>
+                        <p class="font-body-md text-body-md font-bold">${loan.name}</p>
+                        <p class="text-xs text-on-surface-variant">${loan.desc}</p>
+                    </div>
+                    <div class="ml-auto text-right">
+                        <p class="font-tabular-nums font-bold ${textClass}">${formatMoney(loan.amount)}</p>
+                        <span class="text-[10px] ${isReceivable ? 'bg-secondary/10 text-secondary' : 'bg-on-tertiary-container/10 text-on-tertiary-container'} px-2 py-0.5 rounded-full font-bold">${loan.status}</span>
+                    </div>
+                </div>
+            `;
+            loanContainer.appendChild(item);
+        });
+    }
+
+    // 5. Render Expense Analytics Breakdown percentages
+    function renderAnalyticsBreakdown() {
+        const statsContainer = document.getElementById('acc-categories-stats');
+        statsContainer.innerHTML = '';
+
+        // Calculate category spending totals
+        const totals = {};
+        let totalExpenses = 0;
+
+        state.transactions.forEach(tx => {
+            if (tx.type === 'outgoing') {
+                const cat = tx.category || 'Otros';
+                totals[cat] = (totals[cat] || 0) + tx.amount;
+                totalExpenses += tx.amount;
+            }
+        });
+
+        const categories = Object.keys(totals);
+        if (categories.length === 0 || totalExpenses === 0) {
+            statsContainer.innerHTML = `<p class="text-on-surface-variant text-xs">Sin registros de gastos.</p>`;
+            return;
+        }
+
+        const colors = {
+            'Alimentación': 'bg-secondary',
+            'Servicios': 'bg-primary',
+            'Ocio': 'bg-tertiary-container',
+            'Otros': 'bg-outline'
+        };
+
+        categories.sort((a,b) => totals[b] - totals[a]).forEach(cat => {
+            const percent = Math.round((totals[cat] / totalExpenses) * 100);
+            const color = colors[cat] || 'bg-outline';
+
+            const item = document.createElement('div');
+            item.className = 'flex items-center gap-sm';
+            item.innerHTML = `
+                <div class="w-2 h-2 rounded-full ${color}"></div>
+                <span class="flex-1 font-body-sm text-body-sm text-on-surface">${cat}</span>
+                <span class="font-tabular-nums font-body-sm text-body-sm text-on-surface-variant">${percent}%</span>
+            `;
+            statsContainer.appendChild(item);
+        });
+    }
+
+    // --- Tab Switcher Logic ---
+    function switchTab(tabName) {
+        // Show/Hide Tab divs
+        document.querySelectorAll('.tab-view').forEach(view => {
+            if (view.id === `tab-${tabName}`) {
+                view.classList.remove('hidden');
+            } else {
+                view.classList.add('hidden');
+            }
+        });
+
+        // Set Tab button Active class (Desktop sidebar)
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            const isTarget = btn.getAttribute('data-tab') === tabName;
+            btn.className = isTarget 
+                ? 'nav-btn w-full flex items-center gap-sm px-md py-sm bg-primary-container text-on-primary-container rounded-lg font-bold transition-all text-left active'
+                : 'nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left';
+        });
+
+        // Set Tab button Active class (Mobile bottom bar)
+        document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+            const isTarget = btn.getAttribute('data-tab') === tabName;
+            if (isTarget) {
+                btn.className = 'mobile-nav-btn flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active-mobile transition-all duration-150';
+            } else {
+                btn.className = 'mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg';
+            }
+        });
+
+        // Update Title Header
+        const titles = {
+            'dashboard': 'Resumen General',
+            'accounts': 'Mis Billeteras',
+            'payments': 'Vencimientos y Servicios',
+            'integrations': 'Integraciones y APIs',
+            'settings': 'Configuración de Cuenta'
+        };
+        document.getElementById('view-title').textContent = titles[tabName] || 'WealthFlow';
+    }
+
+    // --- Toast System ---
+    function showToast(text, type = 'success') {
+        const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toast-text');
+        const toastIcon = document.getElementById('toast-icon');
+
+        toastText.textContent = text;
+        if (type === 'success') {
+            toastIcon.textContent = 'check_circle';
+            toastIcon.className = 'material-symbols-outlined text-secondary-fixed';
+        } else if (type === 'error') {
+            toastIcon.textContent = 'error';
+            toastIcon.className = 'material-symbols-outlined text-error';
+        } else {
+            toastIcon.textContent = 'info';
+            toastIcon.className = 'material-symbols-outlined text-primary';
+        }
+
+        // Show toast animation
+        toast.classList.remove('translate-y-24', 'opacity-0');
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3000);
+    }
+
+    // --- Modal Controls ---
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // Pay Bill Modal Trigger
+    function openPayBillModal(billId) {
+        const bill = state.bills.find(b => b.id === billId);
+        if (!bill) return;
+
+        document.getElementById('pay-bill-id').value = billId;
+        document.getElementById('pay-bill-name').textContent = bill.name;
+        document.getElementById('pay-bill-amount').textContent = formatMoney(bill.amount, bill.isUSD);
+
+        openModal('modal-pay-bill');
+    }
+
+    // --- Process Transactions (Add / Send / Pay) ---
+
+    // Add Funds Submit
+    document.getElementById('form-add-funds').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const dest = document.getElementById('add-destination').value;
+        const amount = parseFloat(document.getElementById('add-amount').value);
+
+        if (isNaN(amount) || amount <= 0) return;
+
+        // Update Wallet
+        state.wallets[dest] += amount;
+
+        // Add Transaction record
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'incoming',
+            title: `Carga de fondos (${dest})`,
+            amount: amount,
+            wallet: dest === 'Galicia' ? 'Banco Galicia' : dest,
+            date: 'Hoy • Reciente',
+            category: 'Ingreso'
+        });
+
+        saveState();
+        renderAll();
+        closeModal('modal-add');
+        showToast(`Cargaste ${formatMoney(amount)} con éxito en ${dest}.`, 'success');
+    });
+
+    // Send Money Submit
+    document.getElementById('form-send-money').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const origin = document.getElementById('send-origin').value;
+        const recipient = document.getElementById('send-recipient').value.trim();
+        const amount = parseFloat(document.getElementById('send-amount').value);
+        const concept = document.getElementById('send-concept').value.trim();
+
+        if (isNaN(amount) || amount <= 0) return;
+
+        // Check funds
+        const currentBalance = state.wallets[origin];
+        if (amount > currentBalance) {
+            showToast(`Saldo insuficiente en ${origin} para transferir.`, 'error');
+            return;
+        }
+
+        // Subtract funds
+        state.wallets[origin] -= amount;
+
+        // Add Transaction record
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'outgoing',
+            title: `Transferencia a ${recipient}`,
+            amount: amount,
+            wallet: origin === 'Galicia' ? 'Banco Galicia' : origin,
+            date: 'Hoy • Reciente',
+            category: 'Otros',
+            note: concept || 'Envío de dinero'
+        });
+
+        saveState();
+        renderAll();
+        closeModal('modal-send');
+        showToast(`Enviaste ${formatMoney(amount)} a ${recipient}.`, 'success');
+    });
+
+    // Pay Bill Submit
+    document.getElementById('form-pay-bill').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const billId = document.getElementById('pay-bill-id').value;
+        const wallet = document.getElementById('pay-bill-source').value;
+
+        const bill = state.bills.find(b => b.id === billId);
+        if (!bill) return;
+
+        const balance = state.wallets[wallet];
+        if (bill.amount > balance) {
+            showToast(`Saldo insuficiente en ${wallet} para pagar este servicio.`, 'error');
+            return;
+        }
+
+        // Subtract funds & delete bill obligation
+        state.wallets[wallet] -= bill.amount;
+        state.bills = state.bills.filter(b => b.id !== billId);
+
+        // Add transaction
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'outgoing',
+            title: `Pago: ${bill.name}`,
+            amount: bill.amount,
+            wallet: wallet === 'Galicia' ? 'Banco Galicia' : wallet,
+            date: 'Hoy • Reciente',
+            category: 'Servicios'
+        });
+
+        saveState();
+        renderAll();
+        closeModal('modal-pay-bill');
+        showToast(`Pagaste ${bill.name} de ${formatMoney(bill.amount)} exitosamente.`, 'success');
+    });
+
+    // Pay all overdue bills today
+    document.getElementById('btn-pay-all-today').addEventListener('click', () => {
+        const overdue = state.bills.filter(b => b.status === 'overdue');
+        if (overdue.length === 0) return;
+
+        // Compute total overdue
+        const total = overdue.reduce((sum, b) => sum + b.amount, 0);
+        // Deduct from Galicia by default or MercadoPago
+        const wallet = state.wallets.Galicia >= total ? 'Galicia' : 'MercadoPago';
+        const balance = state.wallets[wallet];
+
+        if (total > balance) {
+            showToast(`Saldo insuficiente en ${wallet} para liquidar todos los vencimientos de hoy.`, 'error');
+            return;
+        }
+
+        // Deduct all
+        state.wallets[wallet] -= total;
+        state.bills = state.bills.filter(b => b.status !== 'overdue');
+
+        // Add log
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'outgoing',
+            title: `Pago: Vencimientos Consolidados`,
+            amount: total,
+            wallet: wallet === 'Galicia' ? 'Banco Galicia' : wallet,
+            date: 'Hoy • Reciente',
+            category: 'Servicios'
+        });
+
+        saveState();
+        renderAll();
+        showToast(`Liquidaste todos los vencimientos de hoy (${formatMoney(total)}) desde ${wallet}.`, 'success');
+    });
+
+    // --- API Configuration & Copy-paste Actions ---
+
+    // Submit Webhook Config URL
+    document.getElementById('api-config-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.webhookUrl = document.getElementById('api-webhook-url').value.trim();
+        saveState();
+        showToast('Configuración guardada exitosamente.', 'success');
+    });
+
+    // Test webhook button click
+    document.getElementById('btn-test-webhook').addEventListener('click', () => {
+        openModal('modal-webhook-test');
+    });
+
+    document.getElementById('btn-close-webhook-test').addEventListener('click', () => {
+        closeModal('modal-webhook-test');
+    });
+
+    // Reveal secret key toggling
+    let secretHidden = true;
+    document.getElementById('btn-reveal-secret').addEventListener('click', () => {
+        const input = document.getElementById('api-client-secret');
+        const icon = document.getElementById('btn-reveal-secret');
+        if (secretHidden) {
+            input.value = 'secret_dennis_wallet_key_value';
+            input.type = 'text';
+            icon.textContent = 'visibility_off';
+        } else {
+            input.value = '••••••••••••••••';
+            input.type = 'password';
+            icon.textContent = 'visibility';
+        }
+        secretHidden = !secretHidden;
+    });
+
+    // Copy Client ID click
+    document.getElementById('btn-copy-client-id').addEventListener('click', () => {
+        const val = document.getElementById('api-client-id').value;
+        navigator.clipboard.writeText(val)
+            .then(() => showToast('Copiado al portapapeles', 'success'))
+            .catch(() => showToast('No se pudo copiar', 'error'));
+    });
+
+    // --- Onboarding Profile and Settings form ---
+    document.getElementById('settings-profile-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fullname = document.getElementById('settings-fullname').value.trim();
+        const alias = document.getElementById('settings-alias').value.trim();
+
+        state.user.name = fullname;
+        state.user.alias = alias;
+        saveState();
+
+        // Update avatar label text on Sidenav drawer
+        document.querySelector('aside .font-bold.truncate').textContent = fullname;
+        showToast('Perfil actualizado con éxito.', 'success');
+    });
+
+    // --- Theme Switcher Logic ---
+    function toggleTheme() {
+        const html = document.documentElement;
+        const icon = document.getElementById('theme-icon');
+
+        if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            html.classList.add('light');
+            icon.textContent = 'light_mode';
+            state.theme = 'light';
+            showToast('Tema claro activado', 'info');
+        } else {
+            html.classList.remove('light');
+            html.classList.add('dark');
+            icon.textContent = 'dark_mode';
+            state.theme = 'dark';
+            showToast('Tema oscuro activado', 'info');
+        }
+        saveState();
+    }
+
+    // --- General Render Wrapper ---
+    function renderAll() {
+        renderBalances();
+        renderTransactions();
+        renderBills();
+        renderLoans();
+        renderAnalyticsBreakdown();
+    }
+
+    // --- Wire-up Event Listeners ---
+
+    // Sidebar navigation clicks (Desktop)
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+
+    // Sidenav links triggers on widgets (Accounts / Payments / etc)
+    document.querySelectorAll('.card-nav').forEach(link => {
+        link.addEventListener('click', () => {
+            const tabName = link.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+
+    // Mobile bottom navigation bar clicks
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+
+    // Mobile settings click
+    document.querySelector('.mobile-settings-btn').addEventListener('click', () => {
+        switchTab('settings');
+    });
+
+    // Action button clicks inside tab views
+    document.getElementById('acc-btn-add-funds').addEventListener('click', () => openModal('modal-add'));
+    document.getElementById('acc-btn-transfer').addEventListener('click', () => openModal('modal-send'));
+    document.getElementById('acc-btn-connect-wallet').addEventListener('click', () => {
+        showToast('Esta característica es un demo del diseño.', 'info');
+    });
+
+    // Floating action button trigger
+    document.getElementById('main-fab').addEventListener('click', () => {
+        openModal('modal-send');
+    });
+
+    // Close Modals
+    document.getElementById('btn-close-send').addEventListener('click', () => closeModal('modal-send'));
+    document.getElementById('btn-close-add').addEventListener('click', () => closeModal('modal-add'));
+    document.getElementById('btn-close-pay-bill').addEventListener('click', () => closeModal('modal-pay-bill'));
+
+    // Clear history in Accounts tab
+    document.getElementById('btn-clear-history').addEventListener('click', () => {
+        state.transactions = [];
+        saveState();
+        renderTransactions();
+        renderAnalyticsBreakdown();
+        showToast('Historial vaciado.', 'info');
+    });
+
+    // Login Form Submission
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.isLoggedIn = true;
+        saveState();
+
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('app-tabs-container').classList.remove('hidden');
+        showToast('Bienvenido, Dennis A.', 'success');
+        renderAll();
+    });
+
+    // Sidenav Logout button
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        state.isLoggedIn = false;
+        saveState();
+
+        document.getElementById('app-tabs-container').classList.add('hidden');
+        document.getElementById('view-login').classList.remove('hidden');
+        showToast('Sesión cerrada de forma segura.', 'info');
+    });
+
+    // Theme toggle button click
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+    // --- Init execution ---
+    loadState();
+
+    // Set user labels on drawer
+    document.querySelector('aside .font-bold.truncate').textContent = state.user.name;
+
+    // Apply saved theme class to document
+    const html = document.documentElement;
+    html.className = state.theme;
+    document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';
+
+    if (state.isLoggedIn) {
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('app-tabs-container').classList.remove('hidden');
+        renderAll();
+        switchTab('dashboard');
+    } else {
+        document.getElementById('view-login').classList.remove('hidden');
+        document.getElementById('app-tabs-container').classList.add('hidden');
+    }
+});

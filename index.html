@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>WealthFlow - Dennis Wallet</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed-variant": "#872000",
+                      "on-surface-variant": "#454652",
+                      "error": "#ba1a1a",
+                      "on-primary-fixed": "#000767",
+                      "surface-dim": "#d8dadd",
+                      "surface-bright": "#f7f9fc",
+                      "outline": "#767683",
+                      "on-error": "#ffffff",
+                      "background": "#f7f9fc",
+                      "secondary-fixed-dim": "#88d982",
+                      "inverse-on-surface": "#eff1f4",
+                      "on-tertiary-container": "#ff663b",
+                      "on-secondary-fixed": "#002204",
+                      "primary-fixed": "#e0e0ff",
+                      "primary": "#000666",
+                      "on-primary": "#ffffff",
+                      "surface-tint": "#4c56af",
+                      "surface-container-lowest": "#ffffff",
+                      "outline-variant": "#c6c5d4",
+                      "primary-fixed-dim": "#bdc2ff",
+                      "tertiary-fixed": "#ffdbd1",
+                      "on-surface": "#191c1e",
+                      "secondary-container": "#a0f399",
+                      "on-secondary-fixed-variant": "#005312",
+                      "surface-container": "#eceef1",
+                      "surface-container-low": "#f2f4f7",
+                      "tertiary-fixed-dim": "#ffb5a0",
+                      "tertiary": "#3a0900",
+                      "on-secondary-container": "#217128",
+                      "on-secondary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#1a237e",
+                      "surface-container-high": "#e6e8eb",
+                      "tertiary-container": "#5f1400",
+                      "surface": "#f7f9fc",
+                      "inverse-primary": "#bdc2ff",
+                      "on-primary-container": "#8690ee",
+                      "surface-container-highest": "#e0e3e6",
+                      "secondary": "#1b6d24",
+                      "on-background": "#191c1e",
+                      "on-tertiary-fixed": "#3b0900",
+                      "inverse-surface": "#2d3133",
+                      "secondary-fixed": "#a3f69c",
+                      "surface-variant": "#e0e3e6",
+                      "on-primary-fixed-variant": "#343d96"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "lg": "32px",
+                      "container-max": "1280px",
+                      "md": "24px",
+                      "xl": "48px",
+                      "sm": "16px",
+                      "base": "4px",
+                      "gutter": "24px",
+                      "xs": "8px"
+              }
+            },
+          },
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-on-background bg-background min-h-screen">
+
+    <!-- Navigation Drawer (Desktop - Fixed Left) -->
+    <aside class="fixed left-0 top-0 h-full z-40 flex flex-col p-md bg-surface-container-low border-r border-outline-variant w-64 hidden md:flex">
+        <div class="mb-xl px-xs">
+            <h1 class="font-headline-md text-headline-md font-bold text-primary">WealthFlow</h1>
+            <p class="text-on-surface-variant font-label-md mt-1">Financial Clarity</p>
+        </div>
+        
+        <nav class="flex-grow space-y-xs">
+            <!-- Sidebar tabs -->
+            <button data-tab="dashboard" class="nav-btn w-full flex items-center gap-sm px-md py-sm bg-primary-container text-on-primary-container rounded-lg font-bold transition-all text-left">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="font-body-md">Dashboard</span>
+            </button>
+            <button data-tab="accounts" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
+                <span class="material-symbols-outlined">account_balance</span>
+                <span class="font-body-md">Mis Billeteras</span>
+            </button>
+            <button data-tab="payments" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
+                <span class="material-symbols-outlined">event_repeat</span>
+                <span class="font-body-md">Vencimientos</span>
+            </button>
+            <button data-tab="integrations" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
+                <span class="material-symbols-outlined">api</span>
+                <span class="font-body-md">Integraciones</span>
+            </button>
+            <button data-tab="settings" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="font-body-md">Ajustes</span>
+            </button>
+        </nav>
+        
+        <div class="mt-auto pt-md border-t border-outline-variant flex items-center gap-sm">
+            <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold overflow-hidden">
+                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar"/>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-label-md text-on-surface font-bold truncate">Dennis A.</p>
+                <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Pro Account</p>
+            </div>
+            <button id="logout-btn" class="text-on-surface-variant hover:text-error transition-colors" title="Cerrar sesión">
+                <span class="material-symbols-outlined text-[20px]">logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Top Navigation Bar (Mobile Viewport) -->
+    <header class="sticky top-0 z-30 bg-background flex justify-between items-center w-full px-gutter py-xs max-w-container-max mx-auto md:hidden border-b border-outline-variant h-16">
+        <h1 class="font-headline-md text-headline-md font-bold text-primary">WealthFlow</h1>
+        <div class="flex items-center gap-sm">
+            <button class="mobile-settings-btn p-xs text-on-surface-variant hover:bg-surface-container rounded-full">
+                <span class="material-symbols-outlined text-primary">settings</span>
+            </button>
+            <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high flex items-center justify-center border border-primary">
+                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar"/>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="md:ml-64 min-h-screen">
+        <!-- Top App Bar (Header with title / notifications) -->
+        <header class="sticky top-0 z-30 w-full px-gutter py-xs max-w-container-max mx-auto bg-background flex justify-between items-center h-16 border-b border-outline-variant/30">
+            <div class="hidden md:block">
+                <h2 id="view-title" class="font-headline-sm text-headline-sm text-primary">Resumen General</h2>
+            </div>
+            <div class="flex items-center gap-sm">
+                <button class="p-xs hover:bg-surface-container-high transition-colors rounded-full text-on-surface-variant active:scale-95 duration-100" title="Notificaciones">
+                    <span class="material-symbols-outlined">notifications</span>
+                </button>
+                <button id="theme-toggle" class="p-xs hover:bg-surface-container-high transition-colors rounded-full text-on-surface-variant active:scale-95 duration-100" title="Alternar tema claro/oscuro">
+                    <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- VIEW: Onboarding / Login (Shown if not logged in) -->
+        <div id="view-login" class="px-gutter py-md max-w-sm mx-auto mt-20 bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 space-y-md">
+            <div class="text-center">
+                <h2 class="text-headline-md font-bold text-primary">Iniciar Sesión</h2>
+                <p class="text-on-surface-variant font-body-sm">Ingresa a tu cuenta de WealthFlow</p>
+            </div>
+            <form id="login-form" class="space-y-sm">
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Usuario</label>
+                    <input type="text" id="username" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="Dennis A." required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Contraseña</label>
+                    <input type="password" id="password" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="••••••••" required/>
+                </div>
+                <button type="submit" class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                    Ingresar de forma segura
+                </button>
+            </form>
+        </div>
+
+        <!-- APP TABS CONTAINER (Hidden initially, shown after login) -->
+        <div id="app-tabs-container" class="hidden">
+            
+            <!-- TAB: Dashboard (Resumen General) -->
+            <div id="tab-dashboard" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+                    <!-- LEFT COLUMN (7 Cols) -->
+                    <section class="lg:col-span-7 space-y-gutter">
+                        <!-- Consolidated Balance Hero Card -->
+                        <div class="relative overflow-hidden rounded-xl bg-primary-container p-lg shadow-md min-h-[220px] flex flex-col justify-between group">
+                            <div class="absolute -right-20 -top-20 w-64 h-64 bg-on-primary-container opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+                            <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-primary opacity-20 rounded-full blur-2xl pointer-events-none"></div>
+                            
+                            <div class="relative z-10">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-on-primary-container opacity-80 font-label-md uppercase tracking-widest">Patrimonio Total</p>
+                                        <h3 id="dash-total-balance" class="font-display-lg text-display-lg text-white mt-base font-tabular-nums">$ 4.092.400,42</h3>
+                                    </div>
+                                    <div class="bg-secondary-container text-on-secondary-container px-sm py-base rounded-pill flex items-center gap-xs font-label-md shadow-sm">
+                                        <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                                        <span>+4.2%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="relative z-10 flex gap-md items-end">
+                                <div class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10">
+                                    <p class="text-white/60 font-label-md mb-base">Ingresos Mensuales</p>
+                                    <p id="dash-monthly-income" class="text-white font-headline-sm font-tabular-nums">$120.000,00</p>
+                                </div>
+                                <div class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10">
+                                    <p class="text-white/60 font-label-md mb-base">Gastos Estimados</p>
+                                    <p id="dash-monthly-expenses" class="text-white font-headline-sm font-tabular-nums">$78.400,00</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Cards (Asymmetric Layout) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+                            <!-- Card 1 (Galicia) -->
+                            <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 flex flex-col justify-between h-48 hover:shadow-lg transition-all cursor-pointer card-nav" data-tab="accounts">
+                                <div class="flex justify-between items-start">
+                                    <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary">account_balance</span>
+                                    </div>
+                                    <span class="text-on-surface-variant material-symbols-outlined">more_vert</span>
+                                </div>
+                                <div>
+                                    <p class="text-on-surface-variant font-label-md">Banco Galicia</p>
+                                    <p id="dash-galicia-balance" class="font-headline-sm text-on-surface font-tabular-nums">$2.850.400,42</p>
+                                </div>
+                                <div class="flex justify-between items-center text-on-surface-variant font-label-md border-t border-outline-variant/50 pt-sm">
+                                    <span>**** 8821</span>
+                                    <span class="text-secondary font-bold">Activo</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Card 2 (MercadoPago) -->
+                            <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 flex flex-col justify-between h-48 hover:shadow-lg transition-all cursor-pointer card-nav" data-tab="accounts">
+                                <div class="flex justify-between items-start">
+                                    <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                                    </div>
+                                    <span class="text-on-surface-variant material-symbols-outlined">more_vert</span>
+                                </div>
+                                <div>
+                                    <p class="text-on-surface-variant font-label-md">MercadoPago</p>
+                                    <p id="dash-mp-balance" class="font-headline-sm text-on-surface font-tabular-nums">$1.240.500,00</p>
+                                </div>
+                                <div class="flex justify-between items-center text-on-surface-variant font-label-md border-t border-outline-variant/50 pt-sm">
+                                    <span>Cuenta Virtual</span>
+                                    <span class="text-secondary font-bold">Activo</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Savings Goals Progress Section -->
+                        <div class="bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
+                            <div class="flex justify-between items-center mb-lg">
+                                <h4 class="font-headline-sm text-on-surface">Objetivos de Ahorro</h4>
+                                <button class="text-primary font-label-md flex items-center gap-xs hover:underline">
+                                    Ver todos <span class="material-symbols-outlined text-sm">chevron_right</span>
+                                </button>
+                            </div>
+                            <div class="space-y-md">
+                                <div>
+                                    <div class="flex justify-between font-label-md mb-xs">
+                                        <span class="text-on-surface font-bold">Reserva de Emergencia</span>
+                                        <span class="text-on-surface-variant">85% — $15.300 / $18.000</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                                        <div class="h-full bg-secondary w-[85%] transition-all duration-1000"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between font-label-md mb-xs">
+                                        <span class="text-on-surface font-bold">Viaje a Bariloche</span>
+                                        <span class="text-on-surface-variant">42% — $4.200 / $10.000</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary w-[42%] transition-all duration-1000"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- RIGHT COLUMN (5 Cols) -->
+                    <aside class="lg:col-span-5 space-y-gutter">
+                        <!-- Recent Transactions -->
+                        <div class="bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 overflow-hidden">
+                            <div class="p-md border-b border-outline-variant/50 flex justify-between items-center">
+                                <h4 class="font-headline-sm text-on-surface">Gastos Recientes</h4>
+                                <button data-tab="accounts" class="text-primary font-label-md hover:underline flex items-center gap-xs card-nav">
+                                    FILTRAR <span class="material-symbols-outlined text-sm">filter_list</span>
+                                </button>
+                            </div>
+                            <div class="divide-y divide-outline-variant/30" id="dash-recent-transactions">
+                                <!-- Dynamic JS integration -->
+                            </div>
+                            <button data-tab="accounts" class="w-full p-sm text-primary font-label-md hover:bg-surface-container transition-colors border-t border-outline-variant/50 text-center block card-nav">
+                                Ver historial completo
+                            </button>
+                        </div>
+
+                        <!-- Upcoming Bills Widget -->
+                        <div class="bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 overflow-hidden">
+                            <div class="p-md border-b border-outline-variant/50 flex justify-between items-center">
+                                <h4 class="font-headline-sm text-on-surface">Próximos Vencimientos</h4>
+                                <button data-tab="payments" class="text-primary font-label-md hover:underline card-nav">VER HOY</button>
+                            </div>
+                            <div class="p-md space-y-md" id="dash-upcoming-bills">
+                                <!-- Dynamic JS integration -->
+                            </div>
+                        </div>
+
+                        <!-- Market overview card -->
+                        <div class="rounded-xl overflow-hidden shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] bg-surface-container-highest min-h-[160px] relative">
+                            <img class="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATvuA2PnD0f4v7KlMEEG_6GO_IjdG0aYPwrZ1F37Rvw2BD1rV-SKfU-TQHU4CxGczpx3GdHWf6k3fxZE6kE5RxiGQXOkSg35YgGaSCJK3egNIHLjGxzqrGjE09R7ukSjNxw7ccKHiytuqyXRYhorDFwLRMKXt7XcXdGIaENjnxoPXuRMoPIxBpUtwr07aorwnPpzMTNOIf3A1piEwm5q0NG5xHH0r5l9LMWAtz_iPssSZgBW05KiHr9rCzcrE0drRQPIyMMrWTbOQq" alt="Market"/>
+                            <div class="relative p-md flex flex-col justify-between h-full">
+                                <h5 class="text-on-surface font-bold font-body-md">Tendencias del Mercado</h5>
+                                <div class="flex gap-sm mt-8">
+                                    <div class="bg-white/80 backdrop-blur px-sm py-xs rounded-lg shadow-sm border border-outline-variant/30">
+                                        <p class="text-[10px] text-on-surface-variant font-bold uppercase">S&P 500</p>
+                                        <p class="text-secondary font-bold">+1.24%</p>
+                                    </div>
+                                    <div class="bg-white/80 backdrop-blur px-sm py-xs rounded-lg shadow-sm border border-outline-variant/30">
+                                        <p class="text-[10px] text-on-surface-variant font-bold uppercase">NASDAQ</p>
+                                        <p class="text-secondary font-bold">+0.85%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- TAB: Accounts (Mis Billeteras) -->
+            <div id="tab-accounts" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
+                <!-- Hero Balance Display -->
+                <div class="mb-lg p-xl rounded-xl bg-primary-container relative overflow-hidden flex flex-col md:flex-row justify-between items-end gap-md shadow-lg">
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-on-primary-container/10 rounded-full blur-3xl"></div>
+                    <div class="relative z-10">
+                        <p class="font-label-md text-label-md text-on-primary-container/80 uppercase tracking-widest mb-base">Balance Total Combinado</p>
+                        <h2 id="acc-total-balance" class="font-display-lg text-display-lg text-white font-tabular-nums">$ 4.092.400,42</h2>
+                        <div class="flex items-center gap-xs mt-sm">
+                            <span class="flex items-center gap-1 bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full font-label-md text-label-md">
+                                <span class="material-symbols-outlined text-sm">trending_up</span> +12.4%
+                            </span>
+                            <span class="text-on-primary-container/60 font-body-sm text-body-sm">este mes</span>
+                        </div>
+                    </div>
+                    <div class="relative z-10 flex gap-xs">
+                        <button id="acc-btn-add-funds" class="bg-white text-primary font-bold px-md py-sm rounded-lg hover:bg-surface-bright transition-all active:scale-95 flex items-center gap-xs shadow-md">
+                            <span class="material-symbols-outlined">add_circle</span>
+                            Agregar Fondos
+                        </button>
+                        <button id="acc-btn-transfer" class="bg-primary/20 text-white border border-white/20 font-bold px-md py-sm rounded-lg hover:bg-primary/30 transition-all active:scale-95 flex items-center gap-xs">
+                            <span class="material-symbols-outlined">send</span>
+                            Transferir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Wallets Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md mb-xl" id="wallets-grid">
+                    <!-- MercadoPago -->
+                    <div class="wallet-card bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-transparent hover:border-primary/20 transition-all flex flex-col justify-between min-h-[180px] cursor-pointer">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-12 h-12 rounded-lg bg-[#009EE3]/10 flex items-center justify-center">
+                                    <img class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWHh-dGB3lenF2VqkqyNp3JSbNoJJawp3Zcc_gl3lZ8ywDHpJfHj_ChwCNr1pbIt-volHdEVUnekNrJqD8IuXN-R8sRgjx-Y0_w9vZ1wZukCrjgZKeZta49-SkXZ9KrQCSEmohxvaPkD_EihJROA_UQ0Njh93m8rYEpyKKL9onJp1uUDX2Porr2GR80oMvY5Cx3Lr801XgLGcRdgjkGxJRI2mPcpoptmOf5fo8wHGR-irJcpdMtD_KJnwQ_5KakplDGN1afYE6H3Zq" alt="MercadoPago"/>
+                                </div>
+                                <div>
+                                    <h3 class="font-headline-sm text-headline-sm text-on-surface">MercadoPago</h3>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Cuenta Digital</p>
+                                </div>
+                            </div>
+                            <span class="px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md" id="acc-mp-status">Activa</span>
+                        </div>
+                        <div class="mt-md">
+                            <p class="font-label-md text-label-md text-outline mb-base">Saldo disponible</p>
+                            <p id="acc-mp-balance" class="font-headline-md text-headline-md text-primary font-tabular-nums">$ 1.240.500,00</p>
+                        </div>
+                    </div>
+
+                    <!-- Banco Galicia -->
+                    <div class="wallet-card bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border-l-4 border-[#FF6600] border-t border-r border-b border-transparent hover:border-primary/20 transition-all flex flex-col justify-between min-h-[180px] cursor-pointer">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-12 h-12 rounded-lg bg-[#FF6600]/10 flex items-center justify-center">
+                                    <img class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK29TPn2NcKrpTg1v3clvuUU5xLBJOq14FVLKiphHeFpwb0j86rOn_vsMKAR8OldlzbF0IB-ePnDWPPxw4BH9dY8un87XAHZ9OqCDAqQ_g6X4lNtxVlxlXkefkQdgmKpnTB6tgsv-Z2vkNFkSvDjZgMw8WxulC4SZu_tMCbrPXsKcyxomiUC3Vn-KQL4fUb4_QUxc0TtuxJLiiZ8yv6y-xuaGsjQDfPHZxMcgHdgqRi1c2MuveHvS0LZmsXZC03mA5HKGS8-q_xmtL" alt="Galicia"/>
+                                </div>
+                                <div>
+                                    <h3 class="font-headline-sm text-headline-sm text-on-surface">Banco Galicia</h3>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Caja de Ahorro</p>
+                                </div>
+                            </div>
+                            <span class="px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md" id="acc-galicia-status">Activa</span>
+                        </div>
+                        <div class="mt-md">
+                            <p class="font-label-md text-label-md text-outline mb-base">Saldo disponible</p>
+                            <p id="acc-galicia-balance" class="font-headline-md text-headline-md text-primary font-tabular-nums">$ 2.850.400,42</p>
+                        </div>
+                    </div>
+
+                    <!-- PayPal -->
+                    <div class="wallet-card bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-transparent hover:border-primary/20 transition-all flex flex-col justify-between min-h-[180px] cursor-pointer">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-12 h-12 rounded-lg bg-[#003087]/10 flex items-center justify-center">
+                                    <img class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCCTs6-rtbV8qqbKrr3dTJ8OV6A5QqqC_9FTChoDeg8xBAXoirUvkm2x0IGRfJDiRFlPJF9RTHKs_8y9n2l5Lam4YCCKa4mnE8qp4P2jGlk0Nul1OgbIKT23T1hriIPi1RQdpvtFrizLDFdr0kIUaWxZ3lWjm3eiPuDVrCqFgenNUqxV7j0mQml85gBB-6j-AmbZ5TR8fFXHtc2MpubtO7oT5WmVokKo3J_xOe7ko7O95zMC8gqsQwdjmtLwsLlKhAse0gdCwmfKpR" alt="PayPal"/>
+                                </div>
+                                <div>
+                                    <h3 class="font-headline-sm text-headline-sm text-on-surface">PayPal</h3>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">USD Wallet</p>
+                                </div>
+                            </div>
+                            <span class="px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md" id="acc-paypal-status">Activa</span>
+                        </div>
+                        <div class="mt-md">
+                            <p class="font-label-md text-label-md text-outline mb-base">Saldo disponible</p>
+                            <p id="acc-paypal-balance" class="font-headline-md text-headline-md text-primary font-tabular-nums">u$s 450,00</p>
+                        </div>
+                    </div>
+
+                    <!-- Prex -->
+                    <div class="wallet-card bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-transparent border-l-4 border-error hover:border-primary/20 transition-all flex flex-col justify-between min-h-[180px] cursor-pointer">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-12 h-12 rounded-lg bg-[#5D2D91]/10 flex items-center justify-center">
+                                    <img class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCncDhURpJYBBqQNWTbZTYe5_bu0YcGLyEjNGK61CrzFZsO_jDdW_oqRZfjj0pc_6AZlLvB-w-yf4C2P7OONE-_zeDXac3ZFnEr5oufuRa3Ok2YN-6xIYklGgxtX3N0v2BdWGzEGpqPUYcWXQEazffQJIiVSIg1qHDYXs4RJ2DqMOuGWVqBiI5B7lqL1ARJZK4v4H5cfQY0PMLxjZIIrnLXNer6-cTk1mUSB-A9YdcCy6Wqz7-ZnOyPPxvDy5hbuYDGcAApakAA3zwa" alt="Prex"/>
+                                </div>
+                                <div>
+                                    <h3 class="font-headline-sm text-headline-sm text-on-surface">Prex</h3>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">ARS Account</p>
+                                </div>
+                            </div>
+                            <span class="px-xs py-base bg-error-container text-on-error-container rounded-full font-label-md text-label-md" id="acc-prex-status">Saldo Bajo</span>
+                        </div>
+                        <div class="mt-md">
+                            <p class="font-label-md text-label-md text-outline mb-base">Saldo disponible</p>
+                            <p id="acc-prex-balance" class="font-headline-md text-headline-md text-error font-tabular-nums">$ 1.500,00</p>
+                        </div>
+                    </div>
+
+                    <!-- Takenos -->
+                    <div class="wallet-card bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-transparent hover:border-primary/20 transition-all flex flex-col justify-between min-h-[180px] cursor-pointer">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-12 h-12 rounded-lg bg-[#00FF66]/10 flex items-center justify-center">
+                                    <img class="w-8 h-8 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsdb4FxR0jbEgr0Jm-Cllp3O4BGf5ZWfjdDNZRZiblst553QtYmq_tYLcSXzKdMuFNXFz3LXMZnqlXnkcd4ZFTIhG1KNEFoW26lDsYRutfbXsQ5q2rugLxyV4ObQVO0LYdfCV9hZ1Uw57d32x9GcYuAFct8T-2c2z6Wg_6wiqAl8Xu7YUvzGHBjIPj3lGRnhUsMBrS-xyXXlYi7zgBEMaSu_mLB0Ua_NU2ayYZs3kYlvOBcpNcAfV9aEgfK8J_tQNjWrIqug1TNP89" alt="Takenos"/>
+                                </div>
+                                <div>
+                                    <h3 class="font-headline-sm text-headline-sm text-on-surface">Takenos</h3>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Salary USD</p>
+                                </div>
+                            </div>
+                            <span class="px-xs py-base bg-surface-container-high text-on-surface-variant rounded-full font-label-md text-label-md" id="acc-takenos-status">Inactiva</span>
+                        </div>
+                        <div class="mt-md">
+                            <p class="font-label-md text-label-md text-outline mb-base">Saldo disponible</p>
+                            <p id="acc-takenos-balance" class="font-headline-md text-headline-md text-primary font-tabular-nums">u$s 0,00</p>
+                        </div>
+                    </div>
+
+                    <!-- Add New Card Connection -->
+                    <div id="acc-btn-connect-wallet" class="bg-surface-container-low border-2 border-dashed border-outline-variant p-md rounded-xl flex flex-col items-center justify-center gap-sm cursor-pointer hover:bg-surface-container-high transition-colors min-h-[180px]">
+                        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-[32px]">add</span>
+                        </div>
+                        <p class="font-body-md text-body-md font-bold text-primary">Vincular nueva cuenta</p>
+                    </div>
+                </div>
+
+                <!-- Transaction History & Analysis Bento -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-md">
+                    <!-- Detailed History List -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] p-md border border-outline-variant/30">
+                        <div class="flex justify-between items-center mb-md">
+                            <h3 class="font-headline-sm text-headline-sm text-primary">Movimientos Recientes</h3>
+                            <button id="btn-clear-history" class="text-primary font-bold font-label-md text-label-md hover:underline">Limpiar Historial</button>
+                        </div>
+                        <div class="space-y-base" id="acc-transactions-list">
+                            <!-- Dynamic items in JS -->
+                        </div>
+                    </div>
+
+                    <!-- Side Stats Cards -->
+                    <div class="flex flex-col gap-md">
+                        <!-- Investments overview card -->
+                        <div class="bg-primary p-md rounded-xl text-white shadow-lg overflow-hidden relative min-h-[160px] flex flex-col justify-between">
+                            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+                            <div class="relative z-10">
+                                <h4 class="font-headline-sm text-headline-sm mb-xs">Inversiones</h4>
+                                <p class="font-body-sm text-body-sm text-primary-fixed-dim mb-md">Tu capital está creciendo a un ritmo constante.</p>
+                            </div>
+                            <div class="relative z-10 p-sm bg-white/10 rounded-lg backdrop-blur-sm">
+                                <div class="flex justify-between items-center mb-base">
+                                    <span class="font-label-md text-label-md">Rendimiento anual</span>
+                                    <span class="font-label-md text-label-md text-secondary-fixed font-bold">+38.5%</span>
+                                </div>
+                                <div class="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                                    <div class="h-full bg-secondary-fixed w-[70%]"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expenses breakdown widget -->
+                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30">
+                            <h4 class="font-label-md text-label-md text-outline uppercase tracking-wider mb-md">Gastos por Categoría</h4>
+                            <div class="space-y-sm" id="acc-categories-stats">
+                                <!-- Filled by JS calculations -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Payments (Vencimientos) -->
+            <div id="tab-payments" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
+                <!-- Top Filters -->
+                <div class="flex gap-md mb-lg border-b border-outline-variant pb-base overflow-x-auto">
+                    <button class="pay-filter-btn font-body-md text-body-md font-bold text-primary border-b-2 border-primary pb-sm px-base transition-all whitespace-nowrap active" data-category="all">Todos</button>
+                    <button class="pay-filter-btn font-body-md text-body-md text-on-surface-variant hover:text-primary pb-sm px-base transition-all whitespace-nowrap" data-category="loan">Préstamos</button>
+                    <button class="pay-filter-btn font-body-md text-body-md text-on-surface-variant hover:text-primary pb-sm px-base transition-all whitespace-nowrap" data-category="service">Servicios</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+                    <!-- Left stats column (4 cols) -->
+                    <div class="lg:col-span-4 space-y-md">
+                        <!-- Alert Summary -->
+                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
+                            <div class="flex items-center justify-between mb-sm">
+                                <h3 class="font-headline-sm text-headline-sm text-primary">Vence Hoy</h3>
+                                <span class="bg-error/10 text-error px-2 py-1 rounded text-xs font-bold tabular-nums" id="pay-today-count">02</span>
+                            </div>
+                            <div class="space-y-sm" id="pay-today-list">
+                                <!-- Dynamic JS list -->
+                            </div>
+                            <button id="btn-pay-all-today" class="w-full mt-md py-sm bg-primary text-on-primary rounded-lg font-bold hover:opacity-90 transition-opacity">Pagar Todo Hoy</button>
+                        </div>
+
+                        <!-- P2P Loans widget -->
+                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
+                            <h3 class="font-headline-sm text-headline-sm text-primary mb-md">Préstamos P2P</h3>
+                            <div class="space-y-md" id="pay-p2p-list">
+                                <!-- P2P entries via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right schedules column (8 cols) -->
+                    <div class="lg:col-span-8">
+                        <div class="bg-surface-container-lowest p-md lg:p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 min-h-[500px] flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-lg">
+                                    <h3 class="font-headline-sm text-headline-sm text-primary">Cronograma de Pagos</h3>
+                                    <div class="flex items-center gap-sm text-on-surface-variant">
+                                        <span class="material-symbols-outlined text-[20px]">filter_list</span>
+                                        <span class="text-sm font-bold">Filtros</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-lg">
+                                    <!-- Overdue group -->
+                                    <div id="group-overdue">
+                                        <div class="flex items-center gap-sm mb-md text-error">
+                                            <span class="material-symbols-outlined">warning</span>
+                                            <h4 class="text-xs font-bold uppercase tracking-widest">Vencidos (<span id="count-overdue">0</span>)</h4>
+                                        </div>
+                                        <div class="space-y-sm" id="list-overdue">
+                                            <!-- Dynamic items -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Upcoming group -->
+                                    <div id="group-upcoming">
+                                        <div class="flex items-center gap-sm mb-md text-primary">
+                                            <span class="material-symbols-outlined">schedule</span>
+                                            <h4 class="text-xs font-bold uppercase tracking-widest">Próximos (<span id="count-upcoming">0</span>)</h4>
+                                        </div>
+                                        <div class="space-y-sm" id="list-upcoming">
+                                            <!-- Dynamic items -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Integrations (APIs) -->
+            <div id="tab-integrations" class="tab-view px-gutter py-md max-w-container-max mx-auto space-y-lg hidden">
+                
+                <!-- Sourced connections -->
+                <section>
+                    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-md">Cuentas Vinculadas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+                        <!-- MercadoPago API -->
+                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 hover:border-primary/20 transition-all group relative overflow-hidden">
+                            <div class="flex justify-between items-start mb-sm">
+                                <div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary text-3xl">account_balance_wallet</span>
+                                </div>
+                                <span class="bg-secondary/10 text-secondary px-xs py-base rounded-full font-label-md flex items-center gap-base">
+                                    <span class="w-1.5 h-1.5 bg-secondary rounded-full"></span> Activo
+                                </span>
+                            </div>
+                            <h4 class="font-body-lg text-on-surface font-bold">MercadoPago</h4>
+                            <p class="font-body-sm text-on-surface-variant mb-md">Sincronización de ventas y transferencias cada 15 min.</p>
+                            <div class="flex items-center justify-between pt-md border-t border-outline-variant/50">
+                                <span class="font-label-md text-outline">Última sync: Hace 4m</span>
+                                <button class="text-primary font-bold font-label-md hover:underline">Configurar</button>
+                            </div>
+                        </div>
+
+                        <!-- Galicia API -->
+                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 hover:border-primary/20 transition-all group">
+                            <div class="flex justify-between items-start mb-sm">
+                                <div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-primary text-3xl">account_balance</span>
+                                </div>
+                                <span class="bg-secondary/10 text-secondary px-xs py-base rounded-full font-label-md flex items-center gap-base">
+                                    <span class="w-1.5 h-1.5 bg-secondary rounded-full"></span> Activo
+                                </span>
+                            </div>
+                            <h4 class="font-body-lg text-on-surface font-bold">Banco Galicia</h4>
+                            <p class="font-body-sm text-on-surface-variant mb-md">Conexión corporativa vía API Galicia Office.</p>
+                            <div class="flex items-center justify-between pt-md border-t border-outline-variant/50">
+                                <span class="font-label-md text-outline">Última sync: Hace 1h</span>
+                                <button class="text-primary font-bold font-label-md hover:underline">Configurar</button>
+                            </div>
+                        </div>
+
+                        <!-- Add Bank connection -->
+                        <div class="border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center p-md hover:bg-surface-container-low transition-colors cursor-pointer group">
+                            <div class="w-12 h-12 rounded-full bg-outline-variant/20 flex items-center justify-center text-outline group-hover:bg-primary/10 group-hover:text-primary transition-all mb-xs">
+                                <span class="material-symbols-outlined text-3xl">add_link</span>
+                            </div>
+                            <span class="font-body-md font-bold text-on-surface-variant group-hover:text-primary">Conectar Nuevo Banco</span>
+                            <span class="font-label-md text-outline">Soporta +40 entidades locales</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Technical Settings -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+                    <!-- API Form -->
+                    <section class="lg:col-span-7 space-y-md">
+                        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30">
+                            <h3 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Configuración Técnica</h3>
+                            <p class="font-body-sm text-on-surface-variant mb-lg">Configura tus credenciales de acceso para la API de WealthFlow.</p>
+                            <form id="api-config-form" class="space-y-md">
+                                <div class="space-y-base">
+                                    <label class="font-label-md text-on-surface-variant block">Nombre de la Aplicación</label>
+                                    <input class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" type="text" value="WealthFlow Dennis Dashboard"/>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                                    <div class="space-y-base">
+                                        <label class="font-label-md text-on-surface-variant block">Client ID</label>
+                                        <div class="relative">
+                                            <input class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm font-tabular-nums text-on-surface-variant outline-none" readonly="" type="text" id="api-client-id" value="wf_live_dennis_82390123"/>
+                                            <button class="absolute right-xs top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant hover:text-primary" id="btn-copy-client-id" type="button">content_copy</button>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-base">
+                                        <label class="font-label-md text-on-surface-variant block">Client Secret</label>
+                                        <div class="relative">
+                                            <input class="w-full bg-surface-container border border-outline-variant rounded-lg px-md py-sm font-tabular-nums text-on-surface-variant outline-none" type="password" id="api-client-secret" value="secret_dennis_wallet_key_value" readonly/>
+                                            <button class="absolute right-xs top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant hover:text-primary" id="btn-reveal-secret" type="button">visibility</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="space-y-base">
+                                    <label class="font-label-md text-on-surface-variant block">Webhook URL (Notificaciones de Eventos)</label>
+                                    <div class="flex gap-xs">
+                                        <input id="api-webhook-url" class="flex-1 bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="https://api.tuempresa.com/webhooks" type="url" value="https://dennis.wallet.com/webhooks"/>
+                                        <button class="bg-surface-container-high text-on-surface-variant px-md rounded-lg font-bold hover:bg-surface-container-highest transition-colors" id="btn-test-webhook" type="button">Test</button>
+                                    </div>
+                                </div>
+                                <div class="pt-md flex justify-end gap-md">
+                                    <button class="font-body-md font-bold text-on-surface-variant px-md py-xs rounded-lg hover:bg-surface-container transition-colors" type="button">Descartar</button>
+                                    <button class="bg-primary text-on-primary font-bold px-xl py-xs rounded-lg hover:shadow-lg transition-all active:scale-95" type="submit">Guardar Cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="bg-primary/5 border border-primary/10 p-md rounded-xl flex gap-md items-start">
+                            <span class="material-symbols-outlined text-primary">verified_user</span>
+                            <div>
+                                <p class="font-body-md font-bold text-primary">Conexión Bancaria Segura</p>
+                                <p class="font-body-sm text-on-surface-variant">WealthFlow utiliza encriptación AES-256 y cumple con las normativas BCRA de seguridad informática para el intercambio de datos financieros.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Support and traffic stats -->
+                    <section class="lg:col-span-5 space-y-md">
+                        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30">
+                            <h3 class="font-headline-sm text-headline-sm text-on-surface mb-md">Recursos para Desarrolladores</h3>
+                            <div class="space-y-sm">
+                                <a class="flex items-center justify-between p-md border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors group" href="#">
+                                    <div class="flex items-center gap-md">
+                                        <span class="material-symbols-outlined text-on-surface-variant">description</span>
+                                        <div>
+                                            <p class="font-body-md font-bold text-on-surface">Documentación API</p>
+                                            <p class="font-label-md text-on-surface-variant">Explora los endpoints locales</p>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                </a>
+                                <a class="flex items-center justify-between p-md border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors group" href="#">
+                                    <div class="flex items-center gap-md">
+                                        <span class="material-symbols-outlined text-on-surface-variant">terminal</span>
+                                        <div>
+                                            <p class="font-body-md font-bold text-on-surface">Sandbox Environment</p>
+                                            <p class="font-label-md text-on-surface-variant">Pruebas en ambiente seguro</p>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-outlined text-outline group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Traffic chart placeholder -->
+                        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden relative min-h-[220px] flex flex-col justify-between">
+                            <h4 class="font-label-md text-on-surface-variant font-bold mb-md uppercase tracking-wider">Tráfico API (24h)</h4>
+                            <div class="flex items-end justify-between gap-base h-24">
+                                <div class="w-full bg-primary/20 rounded-t-sm h-[40%]" title="00:00"></div>
+                                <div class="w-full bg-primary/20 rounded-t-sm h-[35%]" title="04:00"></div>
+                                <div class="w-full bg-primary/20 rounded-t-sm h-[55%]" title="08:00"></div>
+                                <div class="w-full bg-primary/60 rounded-t-sm h-[85%]" title="12:00"></div>
+                                <div class="w-full bg-primary rounded-t-sm h-[100%]" title="16:00"></div>
+                                <div class="w-full bg-primary/80 rounded-t-sm h-[70%]" title="20:00"></div>
+                                <div class="w-full bg-primary/40 rounded-t-sm h-[45%]" title="24:00"></div>
+                            </div>
+                            <div class="mt-md flex justify-between items-center">
+                                <div class="flex flex-col">
+                                    <span class="font-headline-sm text-headline-sm text-primary">12.4k</span>
+                                    <span class="font-label-md text-on-surface-variant">Llamadas totales</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-body-sm text-secondary font-bold">99.98% Success</span>
+                                    <p class="font-label-md text-outline">Latency: 120ms</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- TAB: Settings (Ajustes) -->
+            <div id="tab-settings" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
+                <div class="max-w-2xl bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
+                    <h3 class="font-headline-sm text-headline-sm text-primary mb-md">Configuración de la Cuenta</h3>
+                    <form id="settings-profile-form" class="space-y-sm">
+                        <div>
+                            <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
+                            <input type="text" id="settings-fullname" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="Dennis A." required/>
+                        </div>
+                        <div>
+                            <label class="font-label-md text-on-surface-variant block mb-1">Alias de Transferencia</label>
+                            <input type="text" id="settings-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="dennis.wallet" required/>
+                        </div>
+                        <div>
+                            <label class="font-label-md text-on-surface-variant block mb-1">Idioma del Sistema</label>
+                            <select class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                                <option value="es" selected>Español (ES)</option>
+                                <option value="en">English (US)</option>
+                            </select>
+                        </div>
+                        <div class="pt-md flex justify-end">
+                            <button type="submit" class="bg-primary text-on-primary font-bold px-lg py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                                Guardar Perfil
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobile Viewport only) -->
+    <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-xs py-base pb-safe bg-surface-container-lowest shadow-md md:hidden border-t border-outline-variant h-16">
+        <button data-tab="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active-mobile transition-all duration-150">
+            <span class="material-symbols-outlined">home</span>
+            <span class="font-label-md text-label-md">Home</span>
+        </button>
+        <button data-tab="accounts" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
+            <span class="material-symbols-outlined">account_balance_wallet</span>
+            <span class="font-label-md text-label-md">Wallets</span>
+        </button>
+        <button data-tab="payments" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
+            <span class="material-symbols-outlined">receipt_long</span>
+            <span class="font-label-md text-label-md">Bills</span>
+        </button>
+        <button data-tab="integrations" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
+            <span class="material-symbols-outlined">sync_alt</span>
+            <span class="font-label-md text-label-md">Connect</span>
+        </button>
+    </nav>
+
+    <!-- Modal: Send Money (Transferir) -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-send">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-send">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Enviar Transferencia</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Transfiere dinero al instante de forma segura.</p>
+            <form id="form-send-money" class="space-y-sm">
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Origen de Fondos</label>
+                    <select id="send-origin" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                        <option value="Galicia">Banco Galicia</option>
+                        <option value="MercadoPago">MercadoPago</option>
+                        <option value="PayPal">PayPal</option>
+                        <option value="Prex">Prex</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Destinatario (Alias o CBU)</label>
+                    <input type="text" id="send-recipient" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. juan.perez" required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Monto ($ o u$s)</label>
+                    <input type="number" step="0.01" min="1" id="send-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="0.00" required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Concepto / Comentario</label>
+                    <input type="text" id="send-concept" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Alquiler o Regalo"/>
+                </div>
+                <button type="submit" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                    Confirmar Envío
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Funds (Cargar Fondos) -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-add">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-add">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Cargar Fondos</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Agrega saldo a tus billeteras digitales.</p>
+            <form id="form-add-funds" class="space-y-sm">
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Destino de Fondos</label>
+                    <select id="add-destination" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                        <option value="Galicia">Banco Galicia</option>
+                        <option value="MercadoPago" selected>MercadoPago</option>
+                        <option value="PayPal">PayPal</option>
+                        <option value="Prex">Prex</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Monto a Cargar ($ o u$s)</label>
+                    <input type="number" step="0.01" min="10" id="add-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="10.00" required/>
+                </div>
+                <button type="submit" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                    Cargar Saldo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Pay Bill Select (Pagar Servicio) -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-pay-bill">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-pay-bill">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Pagar Servicio</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Elige una cuenta de origen para liquidar este vencimiento.</p>
+            <form id="form-pay-bill" class="space-y-sm">
+                <input type="hidden" id="pay-bill-id"/>
+                <div>
+                    <p class="font-body-md"><strong id="pay-bill-name">Servicio</strong></p>
+                    <p class="font-headline-sm text-primary font-tabular-nums" id="pay-bill-amount">$ 0,00</p>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Cuenta de Débito</label>
+                    <select id="pay-bill-source" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                        <option value="Galicia">Banco Galicia</option>
+                        <option value="MercadoPago">MercadoPago</option>
+                        <option value="Prex">Prex</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                    Confirmar Pago
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Webhook Test Response Modal -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-webhook-test">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal text-center space-y-md">
+            <h3 class="font-headline-sm text-headline-sm text-secondary font-bold">Test Webhook Exitoso</h3>
+            <span class="material-symbols-outlined text-[48px] text-secondary">cloud_done</span>
+            <p class="font-body-md text-on-surface-variant">El servidor recibió la respuesta <code>200 OK</code>. Conexión de webhook establecida correctamente.</p>
+            <button class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:opacity-90 transition-opacity" id="btn-close-webhook-test">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Toast Notification -->
+    <div class="fixed bottom-lg right-lg z-50 bg-inverse-surface text-inverse-on-surface px-lg py-md rounded-xl shadow-xl flex items-center gap-md translate-y-24 opacity-0 transition-all duration-300" id="toast">
+        <span class="material-symbols-outlined text-secondary-fixed" id="toast-icon">check_circle</span>
+        <span class="font-body-md" id="toast-text">Operación completada</span>
+    </div>
+
+    <!-- Floating Action Button (FAB) -->
+    <button id="main-fab" class="fixed bottom-lg right-lg w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-40" title="Nueva Transacción">
+        <span class="material-symbols-outlined">add</span>
+    </button>
+
+    <!-- Application Interactivity Script -->
+    <script src="app.js"></script>
+</body>
+</html>
