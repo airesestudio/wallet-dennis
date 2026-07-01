@@ -1,4 +1,4 @@
-<!-- WealthFlow v1.9 | build: 2026-07-01 -->
+<!-- WealthFlow v2.0 | build: 2026-07-01 -->
 <!DOCTYPE html>
 <html class="light" lang="es">
 <head>
@@ -197,10 +197,6 @@
                     <div>
                         <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
                         <input type="text" id="register-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Dennis A."/>
-                    </div>
-                    <div>
-                        <label class="font-label-md text-on-surface-variant block mb-1">Alias de Transferencia</label>
-                        <input type="text" id="register-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. dennis.wallet"/>
                     </div>
                 </div>
                 <div>
@@ -857,10 +853,6 @@
                             <input type="text" id="settings-fullname" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="Dennis A." required/>
                         </div>
                         <div>
-                            <label class="font-label-md text-on-surface-variant block mb-1">Alias de Transferencia</label>
-                            <input type="text" id="settings-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="dennis.wallet" required/>
-                        </div>
-                        <div>
                             <label class="font-label-md text-on-surface-variant block mb-1">Idioma del Sistema</label>
                             <select class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
                                 <option value="es" selected>Español (ES)</option>
@@ -972,14 +964,10 @@
                     </div>
 
                     <!-- Global stats -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                         <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
                             <span class="text-xs font-bold text-on-surface-variant uppercase">Usuarios Registrados</span>
                             <p class="font-headline-md text-headline-md font-bold text-primary mt-xs" id="admin-total-users">0</p>
-                        </div>
-                        <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
-                            <span class="text-xs font-bold text-on-surface-variant uppercase">Fondos Consolidados</span>
-                            <p class="font-headline-md text-headline-md font-bold text-secondary mt-xs" id="admin-total-assets">$ 0,00</p>
                         </div>
                         <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
                             <span class="text-xs font-bold text-on-surface-variant uppercase">Transacciones Totales</span>
@@ -1010,10 +998,7 @@
                                 <thead>
                                     <tr class="bg-surface-container-low border-b border-outline-variant font-label-md text-on-surface-variant">
                                         <th class="p-md">Usuario</th>
-                                        <th class="p-md">Alias / Email</th>
-                                        <th class="p-md text-right">Saldo MP</th>
-                                        <th class="p-md text-right">Saldo Galicia</th>
-                                        <th class="p-md text-right">Saldo Total (ARS)</th>
+                                        <th class="p-md">Email</th>
                                         <th class="p-md">Rol</th>
                                         <th class="p-md text-center">Acciones</th>
                                     </tr>
@@ -1286,10 +1271,6 @@
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
                     <input type="text" id="admin-edit-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" required/>
-                </div>
-                <div>
-                    <label class="font-label-md text-on-surface-variant block mb-1">Alias</label>
-                    <input type="text" id="admin-edit-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" required/>
                 </div>
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Rol</label>

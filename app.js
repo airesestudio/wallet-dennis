@@ -969,11 +969,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('settings-profile-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const fullname = document.getElementById('settings-fullname').value.trim();
-        const alias = document.getElementById('settings-alias').value.trim();
         const gender = document.getElementById('settings-gender').value;
 
         state.user.name = fullname;
-        state.user.alias = alias;
         state.user.gender = gender;
         
         const previewEl = document.getElementById('settings-avatar-preview');
@@ -1147,9 +1145,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnLoginSubmit.textContent = 'Registrarse';
             btnToggleAuth.textContent = '¿Ya tienes cuenta? Inicia sesión';
             
-            // Make name/alias fields required in register mode
+            // Make name field required in register mode
             document.getElementById('register-name').required = true;
-            document.getElementById('register-alias').required = true;
         } else {
             registerFields.classList.add('hidden');
             loginTitle.textContent = 'Iniciar Sesión';
@@ -1158,7 +1155,6 @@ document.addEventListener('DOMContentLoaded', () => {
             btnToggleAuth.textContent = '¿No tienes cuenta? Regístrate gratis';
             
             document.getElementById('register-name').required = false;
-            document.getElementById('register-alias').required = false;
         }
     });
 
@@ -1175,7 +1171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (isRegisterMode) {
                 const name = document.getElementById('register-name').value;
-                const alias = document.getElementById('register-alias').value;
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 
                 // Update Firebase Auth profile
@@ -1187,7 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state = JSON.parse(JSON.stringify(DEFAULT_STATE));
                 state.isLoggedIn = true;
                 state.user.name = name;
-                state.user.alias = alias || email.split('@')[0] + ".wallet";
+                state.user.email = email;
                 
                 await db.collection("users").doc(userCredential.user.uid).set(state);
                 showToast(`Cuenta creada. ¡Bienvenido, ${name}!`, 'success');
@@ -1418,7 +1413,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderAdminPanel() {
         const totalUsersEl = document.getElementById('admin-total-users');
-        const totalAssetsEl = document.getElementById('admin-total-assets');
         const totalTxsEl = document.getElementById('admin-total-txs');
         const alertEl = document.getElementById('admin-permission-alert');
         const tableBody = document.getElementById('admin-user-table-body');
@@ -1432,7 +1426,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const querySnapshot = await db.collection("users").get();
             adminUsersList = [];
             let totalUsers = 0;
-            let totalAssetsARS = 0;
             let totalTransactions = 0;
 
             querySnapshot.forEach((doc) => {
@@ -1441,19 +1434,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 adminUsersList.push(userData);
                 totalUsers++;
 
-                const userWallets = userData.wallets || {};
-                const ARS = (userWallets.Galicia || 0) + (userWallets.MercadoPago || 0) + (userWallets.Prex || 0);
-                const USD = (userWallets.PayPal || 0) * (userData.exchangeRate || 1000);
-                const userTotalARS = ARS + USD;
-                totalAssetsARS += userTotalARS;
-
                 if (userData.transactions) {
                     totalTransactions += userData.transactions.length;
                 }
 
                 const name = userData.user ? userData.user.name : "Sin Nombre";
-                const alias = userData.user ? userData.user.alias : "sin.alias";
-                const email = userData.user ? (userData.user.email || alias) : alias;
+                const email = userData.user ? (userData.user.email || doc.id) : doc.id;
                 const role = (userData.user && userData.user.role) === 'admin' ? 'Admin' : 'Usuario';
                 const roleClass = role === 'Admin' ? 'bg-primary/10 text-primary font-bold' : 'bg-surface-variant text-on-surface-variant';
 
@@ -1462,9 +1448,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td class="p-md font-bold text-on-surface">${name}</td>
                     <td class="p-md text-on-surface-variant font-tabular-nums text-xs">${email}</td>
-                    <td class="p-md text-right font-tabular-nums font-bold">${formatMoney(userWallets.MercadoPago || 0)}</td>
-                    <td class="p-md text-right font-tabular-nums font-bold">${formatMoney(userWallets.Galicia || 0)}</td>
-                    <td class="p-md text-right font-tabular-nums font-bold text-primary">${formatMoney(userTotalARS)}</td>
                     <td class="p-md">
                         <span class="px-xs py-base rounded-full font-label-md ${roleClass}">${role}</span>
                     </td>
@@ -1476,7 +1459,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             totalUsersEl.textContent = totalUsers;
-            totalAssetsEl.textContent = formatMoney(totalAssetsARS);
             totalTxsEl.textContent = totalTransactions;
 
             tableBody.querySelectorAll('.btn-admin-manage').forEach(btn => {
@@ -1505,7 +1487,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('admin-edit-uid').value = uid;
         document.getElementById('admin-edit-name').value = user.user ? user.user.name : '';
-        document.getElementById('admin-edit-alias').value = user.user ? user.user.alias : '';
         document.getElementById('admin-edit-role').value = (user.user && user.user.role) === 'admin' ? 'admin' : 'user';
         
         document.getElementById('admin-adj-amount').value = '';
@@ -1523,14 +1504,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!user) return;
 
         const newName = document.getElementById('admin-edit-name').value.trim();
-        const newAlias = document.getElementById('admin-edit-alias').value.trim();
         const newRole = document.getElementById('admin-edit-role').value;
         const adjWallet = document.getElementById('admin-adj-wallet').value;
         const adjAmount = parseFloat(document.getElementById('admin-adj-amount').value);
 
         if (!user.user) user.user = {};
         user.user.name = newName;
-        user.user.alias = newAlias;
         user.user.role = newRole;
 
         if (!isNaN(adjAmount) && adjAmount !== 0) {
@@ -1700,7 +1679,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Populate settings page fields from loaded state
             if (state.user) {
                 document.getElementById('settings-fullname').value = state.user.name || '';
-                document.getElementById('settings-alias').value = state.user.alias || '';
                 document.getElementById('settings-gender').value = state.user.gender || 'male';
                 if (state.user.avatarUrl) {
                     updateAvatarsUI(state.user.avatarUrl);
@@ -1732,7 +1710,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('login-email').value = '';
             document.getElementById('login-password').value = '';
             if (document.getElementById('register-name')) document.getElementById('register-name').value = '';
-            if (document.getElementById('register-alias')) document.getElementById('register-alias').value = '';
         }
     });
 });
