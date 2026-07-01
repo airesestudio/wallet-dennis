@@ -33,7 +33,7 @@ const DEFAULT_STATE = {
         name: "Dennis A.",
         alias: "dennis.wallet",
         gender: "male",
-        avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=dennis"
+        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3"
     },
     wallets: {
         Galicia: 2850400.42,
@@ -75,13 +75,17 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadState(uid) {
         try {
             const doc = await db.collection("users").doc(uid).get();
+            const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3";
             if (doc.exists) {
                 state = doc.data();
                 if (!state.themePalette) state.themePalette = 'indigo';
                 if (!state.user) state.user = {};
+                if (!state.user.email && auth.currentUser) {
+                    state.user.email = auth.currentUser.email;
+                }
                 if (!state.user.gender) state.user.gender = 'male';
                 if (!state.user.avatarUrl) {
-                    state.user.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${(state.user.name || 'dennis').replace(/\s+/g, '_')}`;
+                    state.user.avatarUrl = defaultAvatar;
                 }
             } else {
                 // Initialize new user with default template state
@@ -89,8 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.isLoggedIn = true;
                 state.user.name = auth.currentUser.displayName || "Usuario Nuevo";
                 state.user.alias = auth.currentUser.email.split('@')[0] + ".wallet";
+                state.user.email = auth.currentUser.email;
                 state.user.gender = detectGender(state.user.name);
-                state.user.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.user.name.replace(/\s+/g, '_')}`;
+                state.user.avatarUrl = defaultAvatar;
                 await db.collection("users").doc(uid).set(state);
             }
         } catch (e) {
@@ -529,18 +534,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set Tab button Active class (Desktop sidebar)
         document.querySelectorAll('.nav-btn').forEach(btn => {
             const isTarget = btn.getAttribute('data-tab') === tabName;
-            btn.className = isTarget 
-                ? 'nav-btn w-full flex items-center gap-sm px-md py-sm bg-primary-container text-on-primary-container rounded-lg font-bold transition-all text-left active'
-                : 'nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left';
+            if (isTarget) {
+                btn.classList.add('bg-primary-container', 'text-on-primary-container', 'font-bold', 'active');
+                btn.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-high');
+            } else {
+                btn.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-bold', 'active');
+                btn.classList.add('text-on-surface-variant', 'hover:bg-surface-container-high');
+            }
         });
 
         // Set Tab button Active class (Mobile bottom bar)
         document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
             const isTarget = btn.getAttribute('data-tab') === tabName;
             if (isTarget) {
-                btn.className = 'mobile-nav-btn flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active-mobile transition-all duration-150';
+                btn.classList.add('bg-secondary-container', 'text-on-secondary-container', 'active-mobile');
+                btn.classList.remove('text-on-surface-variant', 'hover:bg-surface-variant');
             } else {
-                btn.className = 'mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg';
+                btn.classList.remove('bg-secondary-container', 'text-on-secondary-container', 'active-mobile');
+                btn.classList.add('text-on-surface-variant', 'hover:bg-surface-variant');
             }
         });
 
@@ -1666,16 +1677,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             await loadState(user.uid);
             
-            // Set user role to Admin if their email matches, otherwise demote
+            // Set user role to Admin if their email matches (bootstrap admin)
             if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                 if (!state.user) state.user = {};
                 if (state.user.role !== 'admin') {
                     state.user.role = 'admin';
-                    await saveState();
-                }
-            } else {
-                if (state.user && state.user.role === 'admin') {
-                    state.user.role = 'user';
                     await saveState();
                 }
             }
