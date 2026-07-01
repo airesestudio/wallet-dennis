@@ -823,6 +823,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Auth Error Message Mapper ---
+    function getAuthErrorMessage(err) {
+        const code = err.code || '';
+        const messages = {
+            'auth/invalid-credential':        '❌ Correo o contraseña incorrectos. Verificá tus datos.',
+            'auth/wrong-password':            '❌ Contraseña incorrecta. Intentá de nuevo.',
+            'auth/user-not-found':            '❌ No existe una cuenta con ese correo. ¿Querés registrarte?',
+            'auth/invalid-email':             '❌ El correo electrónico ingresado no es válido.',
+            'auth/email-already-in-use':      '❌ Ese correo ya está registrado. Iniciá sesión en su lugar.',
+            'auth/weak-password':             '❌ La contraseña es muy débil. Usá al menos 6 caracteres.',
+            'auth/too-many-requests':         '⏳ Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.',
+            'auth/network-request-failed':    '🌐 Sin conexión. Verificá tu internet e intentá de nuevo.',
+            'auth/popup-closed-by-user':      '❌ Cerraste el popup de Google antes de completar el inicio de sesión.',
+            'auth/cancelled-popup-request':   '❌ El inicio de sesión con Google fue cancelado.',
+            'auth/user-disabled':             '❌ Esta cuenta fue deshabilitada. Contactá al administrador.',
+            'auth/operation-not-allowed':     '❌ Este método de inicio de sesión no está habilitado. Contactá al administrador.',
+        };
+        return messages[code] || '❌ Ocurrió un error inesperado. Intentá de nuevo.';
+    }
+
     // --- Authentication Form Logic (Toggle Login/Register) ---
     let isRegisterMode = false;
     const btnToggleAuth = document.getElementById('btn-toggle-auth');
@@ -892,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             console.error("Auth error:", err);
-            authErrorMsg.textContent = err.message;
+            authErrorMsg.textContent = getAuthErrorMessage(err);
             authErrorMsg.classList.remove('hidden');
             btnLoginSubmit.disabled = false;
             btnLoginSubmit.textContent = isRegisterMode ? 'Registrarse' : 'Ingresar de forma segura';
