@@ -8,7 +8,7 @@ const firebaseConfig = {
   appId: "1:518161630515:web:9b0f37bfdd673216892a46",
   storageBucket: "wallet-dennis.firebasestorage.app",
   apiKey: "AIzaSyB_YnhZQ6ktvJdUxi_yBZBaDJzF5t7Te50",
-  authDomain: "wallet-dennis.firebaseapp.com",
+  authDomain: "wallet.kofmanstudio.com",
   messagingSenderId: "518161630515",
   projectNumber: "518161630515"
 };
@@ -950,10 +950,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme toggle button click
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-    // --- Google Sign-in (redirect method - more reliable in production) ---
-    document.getElementById('btn-google-signin').addEventListener('click', () => {
+    // --- Google Sign-in ---
+    document.getElementById('btn-google-signin').addEventListener('click', async () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithRedirect(provider);
+        try {
+            await auth.signInWithPopup(provider);
+            showToast('Sesión iniciada con Google', 'success');
+        } catch (err) {
+            console.error("Google Auth error:", err);
+            const authErrorMsg = document.getElementById('auth-error-msg');
+            authErrorMsg.textContent = getAuthErrorMessage(err);
+            authErrorMsg.classList.remove('hidden');
+        }
     });
 
     // --- Loan Modal Logic ---
