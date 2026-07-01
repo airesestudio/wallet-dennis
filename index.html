@@ -1,4 +1,4 @@
-<!-- WealthFlow v1.7 | build: 2026-07-01 -->
+<!-- WealthFlow v1.8 | build: 2026-07-01 -->
 <!DOCTYPE html>
 <html class="light" lang="es">
 <head>
@@ -15,7 +15,7 @@
           theme: {
             extend: {
               "colors": {
-                      "on-tertiary-fixed-variant": "#872000",
+                       "on-tertiary-fixed-variant": "#872000",
                       "on-surface-variant": "#454652",
                       "error": "#ba1a1a",
                       "on-primary-fixed": "#000767",
@@ -26,10 +26,10 @@
                       "background": "#f7f9fc",
                       "secondary-fixed-dim": "#88d982",
                       "inverse-on-surface": "#eff1f4",
-                      "on-tertiary-container": "#ff663b",
+                      "on-tertiary-container": "var(--color-on-tertiary-container)",
                       "on-secondary-fixed": "#002204",
                       "primary-fixed": "#e0e0ff",
-                      "primary": "#000666",
+                      "primary": "var(--color-primary)",
                       "on-primary": "#ffffff",
                       "surface-tint": "#4c56af",
                       "surface-container-lowest": "#ffffff",
@@ -42,20 +42,20 @@
                       "surface-container": "#eceef1",
                       "surface-container-low": "#f2f4f7",
                       "tertiary-fixed-dim": "#ffb5a0",
-                      "tertiary": "#3a0900",
+                      "tertiary": "var(--color-tertiary)",
                       "on-secondary-container": "#217128",
                       "on-secondary": "#ffffff",
                       "error-container": "#ffdad6",
                       "on-tertiary": "#ffffff",
                       "on-error-container": "#93000a",
-                      "primary-container": "#1a237e",
+                      "primary-container": "var(--color-primary-container)",
                       "surface-container-high": "#e6e8eb",
-                      "tertiary-container": "#5f1400",
+                      "tertiary-container": "var(--color-tertiary-container)",
                       "surface": "#f7f9fc",
                       "inverse-primary": "#bdc2ff",
-                      "on-primary-container": "#8690ee",
+                      "on-primary-container": "var(--color-on-primary-container)",
                       "surface-container-highest": "#e0e3e6",
-                      "secondary": "#1b6d24",
+                      "secondary": "var(--color-secondary)",
                       "on-background": "#191c1e",
                       "on-tertiary-fixed": "#3b0900",
                       "inverse-surface": "#2d3133",
@@ -124,7 +124,7 @@
         
         <div class="mt-auto pt-md border-t border-outline-variant flex items-center gap-sm">
             <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold overflow-hidden">
-                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar"/>
+                <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=dennis" alt="Avatar"/>
             </div>
             <div class="flex-1 min-w-0">
                 <p class="font-label-md text-on-surface font-bold truncate">Dennis A.</p>
@@ -144,7 +144,7 @@
                 <span class="material-symbols-outlined text-primary">settings</span>
             </button>
             <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high flex items-center justify-center border border-primary">
-                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar"/>
+                <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=dennis" alt="Avatar"/>
             </div>
         </div>
     </header>
@@ -867,6 +867,28 @@
                                 <option value="en">English (US)</option>
                             </select>
                         </div>
+                        
+                        <!-- Avatar & Gender settings -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-md py-xs border-t border-outline-variant/30 pt-md">
+                            <div>
+                                <label class="font-label-md text-on-surface-variant block mb-1">Sexo / Género (Auto-detectable)</label>
+                                <select id="settings-gender" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                                    <option value="male" selected>Masculino</option>
+                                    <option value="female">Femenino</option>
+                                    <option value="other">Otro</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-md">
+                                <div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container flex items-center justify-center border-2 border-primary shrink-0 relative">
+                                    <img id="settings-avatar-preview" class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=dennis" alt="Avatar Preview"/>
+                                </div>
+                                <button type="button" id="btn-settings-random-avatar" class="bg-surface-container-high text-on-surface px-md py-sm rounded-lg font-bold hover:bg-surface-container-highest transition-all flex items-center gap-xs text-sm">
+                                    <span class="material-symbols-outlined text-[18px]">casino</span>
+                                    <span>Caricatura Aleatoria</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="pt-md flex justify-end">
                             <button type="submit" class="bg-primary text-on-primary font-bold px-lg py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
                                 Guardar Perfil
@@ -889,6 +911,54 @@
                         </button>
                     </div>
                     <p id="budget-saved-label" class="text-xs text-secondary font-bold mt-sm hidden">✓ Presupuesto guardado.</p>
+                </div>
+
+                <!-- Color Palette Settings -->
+                <div class="max-w-2xl bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 mt-md">
+                    <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Paleta de Colores</h3>
+                    <p class="font-body-sm text-on-surface-variant mb-md">Personaliza el color principal y de relieve de la aplicación.</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-sm" id="theme-palettes-container">
+                        <button type="button" class="theme-palette-btn p-xs border-2 border-primary rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold bg-surface-container-low" data-palette="indigo">
+                            <div class="flex gap-base w-full h-4 rounded overflow-hidden">
+                                <div class="flex-grow bg-[#1a237e]" style="background-color: #1a237e !important;"></div>
+                                <div class="flex-grow bg-[#1b6d24]" style="background-color: #1b6d24 !important;"></div>
+                                <div class="flex-grow bg-[#ff663b]" style="background-color: #ff663b !important;"></div>
+                            </div>
+                            <span class="mt-xs">Azul Índigo</span>
+                        </button>
+                        <button type="button" class="theme-palette-btn p-xs border border-outline-variant rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold" data-palette="emerald">
+                            <div class="flex gap-base w-full h-4 rounded overflow-hidden">
+                                <div class="flex-grow bg-[#004d40]" style="background-color: #004d40 !important;"></div>
+                                <div class="flex-grow bg-[#2e7d32]" style="background-color: #2e7d32 !important;"></div>
+                                <div class="flex-grow bg-[#ff8a80]" style="background-color: #ff8a80 !important;"></div>
+                            </div>
+                            <span class="mt-xs">Verde Esmeralda</span>
+                        </button>
+                        <button type="button" class="theme-palette-btn p-xs border border-outline-variant rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold" data-palette="ocean">
+                            <div class="flex gap-base w-full h-4 rounded overflow-hidden">
+                                <div class="flex-grow bg-[#0d47a1]" style="background-color: #0d47a1 !important;"></div>
+                                <div class="flex-grow bg-[#00c853]" style="background-color: #00c853 !important;"></div>
+                                <div class="flex-grow bg-[#ff5722]" style="background-color: #ff5722 !important;"></div>
+                            </div>
+                            <span class="mt-xs">Brisa Marina</span>
+                        </button>
+                        <button type="button" class="theme-palette-btn p-xs border border-outline-variant rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold" data-palette="sunset">
+                            <div class="flex gap-base w-full h-4 rounded overflow-hidden">
+                                <div class="flex-grow bg-[#4a148c]" style="background-color: #4a148c !important;"></div>
+                                <div class="flex-grow bg-[#00e676]" style="background-color: #00e676 !important;"></div>
+                                <div class="flex-grow bg-[#c2185b]" style="background-color: #c2185b !important;"></div>
+                            </div>
+                            <span class="mt-xs">Ocaso Rosa</span>
+                        </button>
+                        <button type="button" class="theme-palette-btn p-xs border border-outline-variant rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold" data-palette="gold">
+                            <div class="flex gap-base w-full h-4 rounded overflow-hidden">
+                                <div class="flex-grow bg-[#ff8f00]" style="background-color: #ff8f00 !important;"></div>
+                                <div class="flex-grow bg-[#00e676]" style="background-color: #00e676 !important;"></div>
+                                <div class="flex-grow bg-[#ff5722]" style="background-color: #ff5722 !important;"></div>
+                            </div>
+                            <span class="mt-xs">Oro Negro</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -28,9 +28,12 @@ auth.getRedirectResult().catch((err) => {
 // --- Default Template State ---
 const DEFAULT_STATE = {
     isLoggedIn: false,
+    themePalette: "indigo",
     user: {
         name: "Dennis A.",
-        alias: "dennis.wallet"
+        alias: "dennis.wallet",
+        gender: "male",
+        avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=dennis"
     },
     wallets: {
         Galicia: 2850400.42,
@@ -74,12 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const doc = await db.collection("users").doc(uid).get();
             if (doc.exists) {
                 state = doc.data();
+                if (!state.themePalette) state.themePalette = 'indigo';
+                if (!state.user) state.user = {};
+                if (!state.user.gender) state.user.gender = 'male';
+                if (!state.user.avatarUrl) {
+                    state.user.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${(state.user.name || 'dennis').replace(/\s+/g, '_')}`;
+                }
             } else {
                 // Initialize new user with default template state
                 state = JSON.parse(JSON.stringify(DEFAULT_STATE));
                 state.isLoggedIn = true;
                 state.user.name = auth.currentUser.displayName || "Usuario Nuevo";
                 state.user.alias = auth.currentUser.email.split('@')[0] + ".wallet";
+                state.user.gender = detectGender(state.user.name);
+                state.user.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.user.name.replace(/\s+/g, '_')}`;
                 await db.collection("users").doc(uid).set(state);
             }
         } catch (e) {
@@ -833,18 +844,136 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     });
 
+    // --- Gender Detection Helper ---
+    function detectGender(name) {
+        if (!name) return 'male';
+        const firstName = name.trim().split(' ')[0].toLowerCase();
+        
+        const femaleEnds = ['a', 'gail', 'luz', 'ruth'];
+        const femaleNames = ['maria', 'maría', 'sol', 'belen', 'belén', 'inés', 'ines', 'carmen', 'mercedes', 'raquel', 'isabel', 'irene', 'beatriz', 'ester', 'pilar'];
+        const maleNames = ['andrea', 'ariel', 'bautista'];
+        
+        if (maleNames.includes(firstName)) return 'male';
+        if (femaleNames.includes(firstName)) return 'female';
+        
+        const lastChar = firstName.slice(-1);
+        const lastTwo = firstName.slice(-2);
+        
+        if (femaleEnds.includes(lastChar) || lastTwo === 'is' || lastTwo === 'es') {
+            if (['luis', 'carlos', 'marcos', 'andres', 'andrés', 'tomas', 'tomás'].includes(firstName)) {
+                return 'male';
+            }
+            return 'female';
+        }
+        return 'male';
+    }
+
+    // Auto-detect gender on fullname input typing
+    document.getElementById('settings-fullname').addEventListener('input', (e) => {
+        const nameVal = e.target.value.trim();
+        if (nameVal.length > 2) {
+            const detected = detectGender(nameVal);
+            document.getElementById('settings-gender').value = detected;
+        }
+    });
+
+    // Generate random avatar seed
+    function generateRandomAvatar(gender) {
+        const seedPrefix = gender === 'female' ? 'female' : gender === 'male' ? 'male' : 'other';
+        const randomSeed = seedPrefix + '_' + Math.floor(Math.random() * 100000);
+        const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`;
+        
+        document.getElementById('settings-avatar-preview').src = newUrl;
+        state.user.avatarUrl = newUrl;
+        updateAvatarsUI(newUrl);
+    }
+
+    // Update all avatar imgs in page
+    function updateAvatarsUI(url) {
+        if (!url) return;
+        const sidebarAvatar = document.querySelector('aside .w-10.h-10 img');
+        if (sidebarAvatar) sidebarAvatar.src = url;
+        const mobileAvatar = document.querySelector('header .w-8.h-8 img');
+        if (mobileAvatar) mobileAvatar.src = url;
+        const settingsPreview = document.getElementById('settings-avatar-preview');
+        if (settingsPreview) settingsPreview.src = url;
+    }
+
+    // Random avatar button click
+    document.getElementById('btn-settings-random-avatar').addEventListener('click', () => {
+        const gender = document.getElementById('settings-gender').value;
+        generateRandomAvatar(gender);
+        showToast('¡Nueva caricatura generada!', 'success');
+    });
+
+    // Clicking avatar/profile area on Sidenav redirects to Settings
+    const profileSidebarBlock = document.querySelector('aside .mt-auto');
+    if (profileSidebarBlock) {
+        profileSidebarBlock.classList.add('cursor-pointer', 'hover:bg-surface-container-high', 'rounded-lg', 'transition-all', 'p-xs');
+        profileSidebarBlock.addEventListener('click', (e) => {
+            if (e.target.closest('#logout-btn')) return;
+            switchTab('settings');
+        });
+    }
+
+    // Mobile header avatar wrapper click redirects to Settings
+    const profileHeaderBlock = document.querySelector('header .w-8.h-8');
+    if (profileHeaderBlock) {
+        profileHeaderBlock.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+        profileHeaderBlock.addEventListener('click', () => {
+            switchTab('settings');
+        });
+    }
+
+    // Color Palette Switcher handler
+    function applyColorPalette(palette) {
+        const html = document.documentElement;
+        if (palette && palette !== 'indigo') {
+            html.setAttribute('data-theme-palette', palette);
+        } else {
+            html.removeAttribute('data-theme-palette');
+        }
+        state.themePalette = palette || 'indigo';
+
+        document.querySelectorAll('.theme-palette-btn').forEach(btn => {
+            if (btn.getAttribute('data-palette') === state.themePalette) {
+                btn.className = 'theme-palette-btn p-xs border-2 border-primary rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold bg-surface-container-low';
+            } else {
+                btn.className = 'theme-palette-btn p-xs border border-outline-variant rounded-lg flex flex-col items-center gap-xs hover:border-primary transition-all text-xs font-bold';
+            }
+        });
+    }
+
+    // Register Palette button clicks
+    document.querySelectorAll('.theme-palette-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const palette = btn.getAttribute('data-palette');
+            applyColorPalette(palette);
+            saveState();
+            showToast(`Paleta de color actualizada.`, 'success');
+        });
+    });
+
     // --- Onboarding Profile and Settings form ---
     document.getElementById('settings-profile-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const fullname = document.getElementById('settings-fullname').value.trim();
         const alias = document.getElementById('settings-alias').value.trim();
+        const gender = document.getElementById('settings-gender').value;
 
         state.user.name = fullname;
         state.user.alias = alias;
+        state.user.gender = gender;
+        
+        const previewEl = document.getElementById('settings-avatar-preview');
+        if (previewEl) {
+            state.user.avatarUrl = previewEl.src;
+        }
+
         saveState();
 
-        // Update avatar label text on Sidenav drawer
         document.querySelector('aside .font-bold.truncate').textContent = fullname;
+        updateAvatarsUI(state.user.avatarUrl);
         showToast('Perfil actualizado con éxito.', 'success');
     });
 
@@ -1537,11 +1666,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             await loadState(user.uid);
             
-            // Set user role to Admin if their email matches
+            // Set user role to Admin if their email matches, otherwise demote
             if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                 if (!state.user) state.user = {};
                 if (state.user.role !== 'admin') {
                     state.user.role = 'admin';
+                    await saveState();
+                }
+            } else {
+                if (state.user && state.user.role === 'admin') {
+                    state.user.role = 'user';
                     await saveState();
                 }
             }
@@ -1557,6 +1691,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             document.querySelector('aside .font-bold.truncate').textContent = state.user ? state.user.name : "Usuario";
             
+            // Populate settings page fields from loaded state
+            if (state.user) {
+                document.getElementById('settings-fullname').value = state.user.name || '';
+                document.getElementById('settings-alias').value = state.user.alias || '';
+                document.getElementById('settings-gender').value = state.user.gender || 'male';
+                if (state.user.avatarUrl) {
+                    updateAvatarsUI(state.user.avatarUrl);
+                }
+            }
+            
+            // Apply loaded color palette
+            applyColorPalette(state.themePalette || 'indigo');
+
             const html = document.documentElement;
             html.className = state.theme || 'light';
             document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';

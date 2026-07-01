@@ -2,6 +2,61 @@
    WEALTHFLOW - STITCH LAYOUT CSS HELPER
    ========================================================================== */
 
+/* --- Theme Color Palettes (CSS Variables) --- */
+:root {
+  --color-primary: #000666;
+  --color-primary-container: #1a237e;
+  --color-on-primary-container: #8690ee;
+  --color-secondary: #1b6d24;
+  --color-tertiary: #3a0900;
+  --color-tertiary-container: #5f1400;
+  --color-on-tertiary-container: #ff663b;
+}
+
+/* Emerald Forest Palette */
+html[data-theme-palette="emerald"] {
+  --color-primary: #004d40;
+  --color-primary-container: #00695c;
+  --color-on-primary-container: #a7ffeb;
+  --color-secondary: #2e7d32;
+  --color-tertiary: #c62828;
+  --color-tertiary-container: #d32f2f;
+  --color-on-tertiary-container: #ff8a80;
+}
+
+/* Ocean Breeze Palette */
+html[data-theme-palette="ocean"] {
+  --color-primary: #0d47a1;
+  --color-primary-container: #1565c0;
+  --color-on-primary-container: #82b1ff;
+  --color-secondary: #00c853;
+  --color-tertiary: #ff3d00;
+  --color-tertiary-container: #ff5722;
+  --color-on-tertiary-container: #ff9e80;
+}
+
+/* Sunset Rose Palette */
+html[data-theme-palette="sunset"] {
+  --color-primary: #4a148c;
+  --color-primary-container: #7b1fa2;
+  --color-on-primary-container: #ea80fc;
+  --color-secondary: #00e676;
+  --color-tertiary: #c2185b;
+  --color-tertiary-container: #e91e63;
+  --color-on-tertiary-container: #ff80ab;
+}
+
+/* Obsidian Gold Palette */
+html[data-theme-palette="gold"] {
+  --color-primary: #ffb300;
+  --color-primary-container: #ff8f00;
+  --color-on-primary-container: #ffe082;
+  --color-secondary: #00e676;
+  --color-tertiary: #ff3d00;
+  --color-tertiary-container: #ff5722;
+  --color-on-tertiary-container: #ff9e80;
+}
+
 /* --- Base & Material Symbols Configuration --- */
 .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
@@ -28,13 +83,13 @@ html.dark body {
 }
 
 .nav-btn.active {
-    border-left-color: #1a237e;
+    border-left-color: var(--color-primary-container);
 }
 
 html.dark .nav-btn.active {
-    border-left-color: #bdc2ff;
+    border-left-color: var(--color-on-primary-container);
     background-color: rgba(189, 194, 255, 0.12) !important;
-    color: #bdc2ff !important;
+    color: var(--color-on-primary-container) !important;
 }
 
 /* --- Navigation Button Active State (Mobile) --- */
