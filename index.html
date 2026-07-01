@@ -164,22 +164,38 @@
         <!-- VIEW: Onboarding / Login (Shown if not logged in) -->
         <div id="view-login" class="px-gutter py-md max-w-sm mx-auto mt-20 bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 space-y-md">
             <div class="text-center">
-                <h2 class="text-headline-md font-bold text-primary">Iniciar Sesión</h2>
-                <p class="text-on-surface-variant font-body-sm">Ingresa a tu cuenta de WealthFlow</p>
+                <h2 id="login-title" class="text-headline-md font-bold text-primary">Iniciar Sesión</h2>
+                <p id="login-subtitle" class="text-on-surface-variant font-body-sm">Ingresa a tu cuenta de WealthFlow</p>
             </div>
             <form id="login-form" class="space-y-sm">
+                <div id="register-fields" class="hidden space-y-sm">
+                    <div>
+                        <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
+                        <input type="text" id="register-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Dennis A."/>
+                    </div>
+                    <div>
+                        <label class="font-label-md text-on-surface-variant block mb-1">Alias de Transferencia</label>
+                        <input type="text" id="register-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. dennis.wallet"/>
+                    </div>
+                </div>
                 <div>
-                    <label class="font-label-md text-on-surface-variant block mb-1">Usuario</label>
-                    <input type="text" id="username" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="Dennis A." required/>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Correo Electrónico</label>
+                    <input type="email" id="login-email" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="correo@ejemplo.com" required/>
                 </div>
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Contraseña</label>
-                    <input type="password" id="password" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" value="••••••••" required/>
+                    <input type="password" id="login-password" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="••••••••" required/>
                 </div>
-                <button type="submit" class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                <p id="auth-error-msg" class="text-xs text-error font-bold hidden"></p>
+                <button type="submit" id="btn-login-submit" class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
                     Ingresar de forma segura
                 </button>
             </form>
+            <div class="text-center pt-xs">
+                <button id="btn-toggle-auth" class="text-xs font-bold text-primary hover:underline">
+                    ¿No tienes cuenta? Regístrate gratis
+                </button>
+            </div>
         </div>
 
         <!-- APP TABS CONTAINER (Hidden initially, shown after login) -->
@@ -923,6 +939,11 @@
     <button id="main-fab" class="fixed bottom-lg right-lg w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-40" title="Nueva Transacción">
         <span class="material-symbols-outlined">add</span>
     </button>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <!-- Application Interactivity Script -->
     <script src="app.js"></script>

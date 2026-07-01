@@ -2,59 +2,93 @@
    WEALTHFLOW - APPLICATION SCRIPT (STITCH INTEGRATED SPA LOGIC)
    ========================================================================== */
 
+// --- Firebase Configuration ---
+const firebaseConfig = {
+  projectId: "wallet-dennis",
+  appId: "1:518161630515:web:9b0f37bfdd673216892a46",
+  storageBucket: "wallet-dennis.firebasestorage.app",
+  apiKey: "AIzaSyB_YnhZQ6ktvJdUxi_yBZBaDJzF5t7Te50",
+  authDomain: "wallet-dennis.firebaseapp.com",
+  messagingSenderId: "518161630515",
+  projectNumber: "518161630515"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- Default Template State ---
+const DEFAULT_STATE = {
+    isLoggedIn: false,
+    user: {
+        name: "Dennis A.",
+        alias: "dennis.wallet"
+    },
+    wallets: {
+        Galicia: 2850400.42,
+        MercadoPago: 1240500.00,
+        PayPal: 450.00, // USD
+        Prex: 1500.00
+    },
+    exchangeRate: 1000, // ARS per USD for consolidated totals
+    transactions: [
+        { id: 1, type: 'outgoing', title: 'Coto Supermercados', amount: 45200.00, wallet: 'MercadoPago', date: 'Hoy • 14:20', category: 'Alimentación' },
+        { id: 2, type: 'incoming', title: 'Transferencia Recibida', amount: 120000.00, wallet: 'Banco Galicia', date: 'Ayer • 09:15', category: 'Ingreso' },
+        { id: 3, type: 'outgoing', title: 'Adobe Subscription', amount: 20.99, wallet: 'PayPal', date: '22 May', category: 'Servicios', isUSD: true },
+        { id: 4, type: 'outgoing', title: 'Kentucky Pizza', amount: 8400.00, wallet: 'MercadoPago', date: '21 May', category: 'Alimentación' },
+        { id: 5, type: 'outgoing', title: 'Supermercado Jumbo', amount: 12450.00, wallet: 'Banco Galicia', date: 'Hace 2 horas', category: 'Alimentación' },
+        { id: 6, type: 'outgoing', title: 'Netflix Streaming', amount: 4800.00, wallet: 'MercadoPago', date: 'Ayer • 18:42', category: 'Servicios' },
+        { id: 7, type: 'outgoing', title: 'Combustible Shell', amount: 25000.00, wallet: 'Banco Galicia', date: '24 May • 10:15', category: 'Ocio' }
+    ],
+    bills: [
+        { id: 'bill-1', name: 'Alquiler Depto', amount: 120000.00, date: 'VENCE EN 2 DÍAS', category: 'Alquiler', status: 'overdue' },
+        { id: 'bill-2', name: 'Servicio Internet (Fibertel)', amount: 6800.00, date: 'Vence hoy', category: 'Servicios', status: 'overdue' },
+        { id: 'bill-3', name: 'Tarjeta Visa Gold', amount: 145300.00, date: 'Vence en 4 días', category: 'Tarjetas', status: 'upcoming' },
+        { id: 'bill-4', name: 'Osde 310 - Salud', amount: 42500.00, date: 'Vence en 6 días', category: 'Servicios', status: 'upcoming' },
+        { id: 'bill-5', name: 'Patente Automotor', amount: 18900.00, date: 'Vence en 10 días', category: 'Impuestos', status: 'upcoming' }
+    ],
+    loans: [
+        { id: 'loan-1', type: 'receivable', name: 'Juan Pérez', amount: 15000.00, desc: 'Vence en 2 días', status: 'PENDIENTE' },
+        { id: 'loan-2', type: 'payable', name: 'María García', amount: 8200.00, desc: 'Vence en 5 días', status: 'PARCIAL' }
+    ],
+    webhookUrl: 'https://dennis.wallet.com/webhooks',
+    theme: 'light'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Initial State ---
-    let state = {
-        isLoggedIn: true,
-        user: {
-            name: "Dennis A.",
-            alias: "dennis.wallet"
-        },
-        wallets: {
-            Galicia: 2850400.42,
-            MercadoPago: 1240500.00,
-            PayPal: 450.00, // USD
-            Prex: 1500.00
-        },
-        exchangeRate: 1000, // ARS per USD for consolidated totals
-        transactions: [
-            { id: 1, type: 'outgoing', title: 'Coto Supermercados', amount: 45200.00, wallet: 'MercadoPago', date: 'Hoy • 14:20', category: 'Alimentación' },
-            { id: 2, type: 'incoming', title: 'Transferencia Recibida', amount: 120000.00, wallet: 'Banco Galicia', date: 'Ayer • 09:15', category: 'Ingreso' },
-            { id: 3, type: 'outgoing', title: 'Adobe Subscription', amount: 20.99, wallet: 'PayPal', date: '22 May', category: 'Servicios', isUSD: true },
-            { id: 4, type: 'outgoing', title: 'Kentucky Pizza', amount: 8400.00, wallet: 'MercadoPago', date: '21 May', category: 'Alimentación' },
-            { id: 5, type: 'outgoing', title: 'Supermercado Jumbo', amount: 12450.00, wallet: 'Banco Galicia', date: 'Hace 2 horas', category: 'Alimentación' },
-            { id: 6, type: 'outgoing', title: 'Netflix Streaming', amount: 4800.00, wallet: 'MercadoPago', date: 'Ayer • 18:42', category: 'Servicios' },
-            { id: 7, type: 'outgoing', title: 'Combustible Shell', amount: 25000.00, wallet: 'Banco Galicia', date: '24 May • 10:15', category: 'Ocio' }
-        ],
-        bills: [
-            { id: 'bill-1', name: 'Alquiler Depto', amount: 120000.00, date: 'VENCE EN 2 DÍAS', category: 'Alquiler', status: 'overdue' },
-            { id: 'bill-2', name: 'Servicio Internet (Fibertel)', amount: 6800.00, date: 'Vence hoy', category: 'Servicios', status: 'overdue' },
-            { id: 'bill-3', name: 'Tarjeta Visa Gold', amount: 145300.00, date: 'Vence en 4 días', category: 'Tarjetas', status: 'upcoming' },
-            { id: 'bill-4', name: 'Osde 310 - Salud', amount: 42500.00, date: 'Vence en 6 días', category: 'Servicios', status: 'upcoming' },
-            { id: 'bill-5', name: 'Patente Automotor', amount: 18900.00, date: 'Vence en 10 días', category: 'Impuestos', status: 'upcoming' }
-        ],
-        loans: [
-            { id: 'loan-1', type: 'receivable', name: 'Juan Pérez', amount: 15000.00, desc: 'Vence en 2 días', status: 'PENDIENTE' },
-            { id: 'loan-2', type: 'payable', name: 'María García', amount: 8200.00, desc: 'Vence en 5 días', status: 'PARCIAL' }
-        ],
-        webhookUrl: 'https://dennis.wallet.com/webhooks',
-        theme: 'light'
-    };
+    let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 
-    // --- LocalStorage Integration ---
-    function loadState() {
-        const saved = localStorage.getItem('wealthflow_state');
-        if (saved) {
-            try {
-                state = JSON.parse(saved);
-            } catch (e) {
-                console.error("Error reading storage:", e);
+    // --- Firebase Integration ---
+    async function loadState(uid) {
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) {
+                state = doc.data();
+            } else {
+                // Initialize new user with default template state
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                state.isLoggedIn = true;
+                state.user.name = auth.currentUser.displayName || "Usuario Nuevo";
+                state.user.alias = auth.currentUser.email.split('@')[0] + ".wallet";
+                await db.collection("users").doc(uid).set(state);
             }
+        } catch (e) {
+            console.error("Error reading Firestore:", e);
         }
     }
 
-    function saveState() {
-        localStorage.setItem('wealthflow_state', JSON.stringify(state));
+    async function saveState() {
+        const user = auth.currentUser;
+        if (user) {
+            try {
+                await db.collection("users").doc(user.uid).set(state);
+            } catch (e) {
+                console.error("Error writing to Firestore:", e);
+                showToast("Error al guardar en la nube", "error");
+            }
+        }
     }
 
     // --- Currency Formatter ---
@@ -766,49 +800,133 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Historial vaciado.', 'info');
     });
 
-    // Login Form Submission
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        state.isLoggedIn = true;
-        saveState();
+    // --- Authentication Form Logic (Toggle Login/Register) ---
+    let isRegisterMode = false;
+    const btnToggleAuth = document.getElementById('btn-toggle-auth');
+    const registerFields = document.getElementById('register-fields');
+    const loginTitle = document.getElementById('login-title');
+    const loginSubtitle = document.getElementById('login-subtitle');
+    const btnLoginSubmit = document.getElementById('btn-login-submit');
+    const authErrorMsg = document.getElementById('auth-error-msg');
 
-        document.getElementById('view-login').classList.add('hidden');
-        document.getElementById('app-tabs-container').classList.remove('hidden');
-        showToast('Bienvenido, Dennis A.', 'success');
-        renderAll();
+    btnToggleAuth.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        authErrorMsg.classList.add('hidden');
+        if (isRegisterMode) {
+            registerFields.classList.remove('hidden');
+            loginTitle.textContent = 'Registrarse';
+            loginSubtitle.textContent = 'Crea tu cuenta de WealthFlow';
+            btnLoginSubmit.textContent = 'Registrarse';
+            btnToggleAuth.textContent = '¿Ya tienes cuenta? Inicia sesión';
+            
+            // Make name/alias fields required in register mode
+            document.getElementById('register-name').required = true;
+            document.getElementById('register-alias').required = true;
+        } else {
+            registerFields.classList.add('hidden');
+            loginTitle.textContent = 'Iniciar Sesión';
+            loginSubtitle.textContent = 'Ingresa a tu cuenta de WealthFlow';
+            btnLoginSubmit.textContent = 'Ingresar de forma segura';
+            btnToggleAuth.textContent = '¿No tienes cuenta? Regístrate gratis';
+            
+            document.getElementById('register-name').required = false;
+            document.getElementById('register-alias').required = false;
+        }
+    });
+
+    // Login/Register Form Submission
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        authErrorMsg.classList.add('hidden');
+        btnLoginSubmit.disabled = true;
+        btnLoginSubmit.textContent = isRegisterMode ? 'Registrando...' : 'Ingresando...';
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            if (isRegisterMode) {
+                const name = document.getElementById('register-name').value;
+                const alias = document.getElementById('register-alias').value;
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                
+                // Update Firebase Auth profile
+                await userCredential.user.updateProfile({
+                    displayName: name
+                });
+
+                // Create initial user document in Firestore
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                state.isLoggedIn = true;
+                state.user.name = name;
+                state.user.alias = alias || email.split('@')[0] + ".wallet";
+                
+                await db.collection("users").doc(userCredential.user.uid).set(state);
+                showToast(`Cuenta creada. ¡Bienvenido, ${name}!`, 'success');
+            } else {
+                await auth.signInWithEmailAndPassword(email, password);
+                showToast('Sesión iniciada.', 'success');
+            }
+        } catch (err) {
+            console.error("Auth error:", err);
+            authErrorMsg.textContent = err.message;
+            authErrorMsg.classList.remove('hidden');
+            btnLoginSubmit.disabled = false;
+            btnLoginSubmit.textContent = isRegisterMode ? 'Registrarse' : 'Ingresar de forma segura';
+        }
     });
 
     // Sidenav Logout button
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        state.isLoggedIn = false;
-        saveState();
-
-        document.getElementById('app-tabs-container').classList.add('hidden');
-        document.getElementById('view-login').classList.remove('hidden');
-        showToast('Sesión cerrada de forma segura.', 'info');
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+            await auth.signOut();
+            showToast('Sesión cerrada de forma segura.', 'info');
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
     });
 
     // Theme toggle button click
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-    // --- Init execution ---
-    loadState();
-
-    // Set user labels on drawer
-    document.querySelector('aside .font-bold.truncate').textContent = state.user.name;
-
-    // Apply saved theme class to document
-    const html = document.documentElement;
-    html.className = state.theme;
-    document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';
-
-    if (state.isLoggedIn) {
-        document.getElementById('view-login').classList.add('hidden');
-        document.getElementById('app-tabs-container').classList.remove('hidden');
-        renderAll();
-        switchTab('dashboard');
-    } else {
-        document.getElementById('view-login').classList.remove('hidden');
-        document.getElementById('app-tabs-container').classList.add('hidden');
-    }
+    // --- Firebase Auth State Listener (Unified Init) ---
+    auth.onAuthStateChanged(async (user) => {
+        const viewLogin = document.getElementById('view-login');
+        const appTabsContainer = document.getElementById('app-tabs-container');
+        
+        if (user) {
+            viewLogin.classList.add('hidden');
+            appTabsContainer.classList.remove('hidden');
+            
+            // Load state from Firestore
+            await loadState(user.uid);
+            
+            // Set user labels on drawer
+            document.querySelector('aside .font-bold.truncate').textContent = state.user.name;
+            
+            // Apply saved theme class to document
+            const html = document.documentElement;
+            html.className = state.theme || 'light';
+            document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';
+            
+            renderAll();
+            switchTab('dashboard');
+        } else {
+            // Reset to defaults
+            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            
+            viewLogin.classList.remove('hidden');
+            appTabsContainer.classList.add('hidden');
+            
+            // Reset submit button state
+            btnLoginSubmit.disabled = false;
+            btnLoginSubmit.textContent = isRegisterMode ? 'Registrarse' : 'Ingresar de forma segura';
+            
+            // Clear input fields
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            if (document.getElementById('register-name')) document.getElementById('register-name').value = '';
+            if (document.getElementById('register-alias')) document.getElementById('register-alias').value = '';
+        }
+    });
 });
