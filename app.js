@@ -18,6 +18,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Handle Google redirect result on page load
+auth.getRedirectResult().catch((err) => {
+    if (err && err.code !== 'auth/no-auth-event') {
+        console.error('Google redirect error:', err);
+    }
+});
+
 // --- Default Template State ---
 const DEFAULT_STATE = {
     isLoggedIn: false,
@@ -905,16 +912,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme toggle button click
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
-    // --- Google Sign-in ---
-    document.getElementById('btn-google-signin').addEventListener('click', async () => {
+    // --- Google Sign-in (redirect method - more reliable in production) ---
+    document.getElementById('btn-google-signin').addEventListener('click', () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        try {
-            await auth.signInWithPopup(provider);
-        } catch (err) {
-            const authErrorMsg = document.getElementById('auth-error-msg');
-            authErrorMsg.textContent = err.message;
-            authErrorMsg.classList.remove('hidden');
-        }
+        auth.signInWithRedirect(provider);
     });
 
     // --- Loan Modal Logic ---
