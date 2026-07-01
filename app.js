@@ -622,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Process Transactions (Add / Send / Pay) ---
 
     // Add Funds Submit
-    document.getElementById('form-add-funds').addEventListener('submit', (e) => {
+    document.getElementById('form-add-funds').addEventListener('submit', async (e) => {
         e.preventDefault();
         const dest = document.getElementById('add-destination').value;
         const amount = parseFloat(document.getElementById('add-amount').value);
@@ -646,14 +646,14 @@ document.addEventListener('DOMContentLoaded', () => {
             isUSD: isUSD
         });
 
-        saveState();
+        await saveState();
         renderAll();
         closeModal('modal-add');
         showToast(`Cargaste ${formatMoney(amount, isUSD)} con éxito en ${dest}.`, 'success');
     });
 
     // Send Money Submit
-    document.getElementById('form-send-money').addEventListener('submit', (e) => {
+    document.getElementById('form-send-money').addEventListener('submit', async (e) => {
         e.preventDefault();
         const origin = document.getElementById('send-origin').value;
         const recipient = document.getElementById('send-recipient').value.trim();
@@ -688,14 +688,14 @@ document.addEventListener('DOMContentLoaded', () => {
             isUSD: isUSD
         });
 
-        saveState();
+        await saveState();
         renderAll();
         closeModal('modal-send');
         showToast(`Enviaste ${formatMoney(amount, isUSD)} a ${recipient}.`, 'success');
     });
 
     // Pay Bill Submit
-    document.getElementById('form-pay-bill').addEventListener('submit', (e) => {
+    document.getElementById('form-pay-bill').addEventListener('submit', async (e) => {
         e.preventDefault();
         const billId = document.getElementById('pay-bill-id').value;
         const wallet = document.getElementById('pay-bill-source').value;
@@ -724,14 +724,14 @@ document.addEventListener('DOMContentLoaded', () => {
             category: 'Servicios'
         });
 
-        saveState();
+        await saveState();
         renderAll();
         closeModal('modal-pay-bill');
         showToast(`Pagaste ${bill.name} de ${formatMoney(bill.amount)} exitosamente.`, 'success');
     });
 
     // Pay all overdue bills today
-    document.getElementById('btn-pay-all-today').addEventListener('click', () => {
+    document.getElementById('btn-pay-all-today').addEventListener('click', async () => {
         const overdue = state.bills.filter(b => b.status === 'overdue');
         if (overdue.length === 0) return;
 
@@ -761,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
             category: 'Servicios'
         });
 
-        saveState();
+        await saveState();
         renderAll();
         showToast(`Liquidaste todos los vencimientos de hoy (${formatMoney(total)}) desde ${wallet}.`, 'success');
     });
@@ -769,10 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- API Configuration & Copy-paste Actions ---
 
     // Submit Webhook Config URL
-    document.getElementById('api-config-form').addEventListener('submit', (e) => {
+    document.getElementById('api-config-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         state.webhookUrl = document.getElementById('api-webhook-url').value.trim();
-        saveState();
+        await saveState();
         showToast('Configuración guardada exitosamente.', 'success');
     });
 
@@ -957,16 +957,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Register Palette button clicks
     document.querySelectorAll('.theme-palette-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const palette = btn.getAttribute('data-palette');
             applyColorPalette(palette);
-            saveState();
+            await saveState();
             showToast(`Paleta de color actualizada.`, 'success');
         });
     });
 
     // --- Onboarding Profile and Settings form ---
-    document.getElementById('settings-profile-form').addEventListener('submit', (e) => {
+    document.getElementById('settings-profile-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fullname = document.getElementById('settings-fullname').value.trim();
         const gender = document.getElementById('settings-gender').value;
@@ -979,7 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.user.avatarUrl = previewEl.src;
         }
 
-        saveState();
+        await saveState();
 
         document.querySelector('aside .font-bold.truncate').textContent = fullname;
         updateAvatarsUI(state.user.avatarUrl);
@@ -1004,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.theme = 'dark';
             showToast('Tema oscuro activado', 'info');
         }
-        saveState();
+        saveState(); // intentionally not awaited - fire and forget for theme
     }
 
     // --- General Render Wrapper ---
@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('qa-btn-loan').addEventListener('click', () => {
         closeModal('modal-quick-actions');
-        openModal('modal-loan');
+        openLoanModal();
     });
 
     // Close Modals
