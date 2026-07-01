@@ -791,7 +791,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Floating action button trigger
     document.getElementById('main-fab').addEventListener('click', () => {
+        openModal('modal-quick-actions');
+    });
+
+    // Quick Actions buttons
+    document.getElementById('btn-close-quick-actions').addEventListener('click', () => closeModal('modal-quick-actions'));
+    
+    document.getElementById('qa-btn-expense').addEventListener('click', () => {
+        closeModal('modal-quick-actions');
         openModal('modal-send');
+    });
+    
+    document.getElementById('qa-btn-income').addEventListener('click', () => {
+        closeModal('modal-quick-actions');
+        openModal('modal-add');
+    });
+    
+    document.getElementById('qa-btn-loan').addEventListener('click', () => {
+        closeModal('modal-quick-actions');
+        openModal('modal-loan');
     });
 
     // Close Modals
