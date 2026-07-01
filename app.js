@@ -53,7 +53,8 @@ const DEFAULT_STATE = {
         { id: 'loan-2', type: 'payable', name: 'María García', amount: 8200.00, desc: 'Vence en 5 días', status: 'PARCIAL' }
     ],
     webhookUrl: 'https://dennis.wallet.com/webhooks',
-    theme: 'light'
+    theme: 'light',
+    monthlyBudget: 0
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -792,12 +793,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-pay-bill').addEventListener('click', () => closeModal('modal-pay-bill'));
 
     // Clear history in Accounts tab
-    document.getElementById('btn-clear-history').addEventListener('click', () => {
+    document.getElementById('btn-clear-history').addEventListener('click', async () => {
         state.transactions = [];
-        saveState();
+        await saveState();
         renderTransactions();
         renderAnalyticsBreakdown();
+        renderMonthlyBalance();
         showToast('Historial vaciado.', 'info');
+    });
+
+    // Budget Save Handler
+    document.getElementById('btn-save-budget').addEventListener('click', async () => {
+        const val = parseFloat(document.getElementById('settings-budget').value);
+        if (!isNaN(val) && val >= 0) {
+            state.monthlyBudget = val;
+            await saveState();
+            renderMonthlyBalance();
+            const lbl = document.getElementById('budget-saved-label');
+            lbl.classList.remove('hidden');
+            setTimeout(() => lbl.classList.add('hidden'), 3000);
+            showToast(`Presupuesto mensual guardado: ${formatMoney(val)}`, 'success');
+        }
     });
 
     // --- Authentication Form Logic (Toggle Login/Register) ---
@@ -889,6 +905,202 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme toggle button click
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
+    // --- Google Sign-in ---
+    document.getElementById('btn-google-signin').addEventListener('click', async () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            await auth.signInWithPopup(provider);
+        } catch (err) {
+            const authErrorMsg = document.getElementById('auth-error-msg');
+            authErrorMsg.textContent = err.message;
+            authErrorMsg.classList.remove('hidden');
+        }
+    });
+
+    // --- Loan Modal Logic ---
+    function openLoanModal() {
+        const modal = document.getElementById('modal-loan');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        // Reset form
+        document.getElementById('form-new-loan').reset();
+        document.getElementById('loan-quotas-editor').classList.add('hidden');
+        document.getElementById('loan-quotas-inputs').innerHTML = '';
+        document.getElementById('loan-error-msg').classList.add('hidden');
+        // Default type: payable
+        setLoanType('payable');
+    }
+
+    function closeLoanModal() {
+        const modal = document.getElementById('modal-loan');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    document.getElementById('btn-open-loan-modal').addEventListener('click', openLoanModal);
+    document.getElementById('btn-close-loan-modal').addEventListener('click', closeLoanModal);
+    document.getElementById('btn-cancel-loan').addEventListener('click', closeLoanModal);
+
+    // Loan type toggle buttons
+    let currentLoanType = 'payable';
+    function setLoanType(type) {
+        currentLoanType = type;
+        const payableBtn = document.getElementById('loan-type-payable');
+        const receivableBtn = document.getElementById('loan-type-receivable');
+        if (type === 'payable') {
+            payableBtn.className = 'loan-type-btn flex-1 py-sm rounded-lg border-2 border-primary bg-primary text-on-primary font-bold text-sm transition-all';
+            receivableBtn.className = 'loan-type-btn flex-1 py-sm rounded-lg border-2 border-outline-variant text-on-surface-variant font-bold text-sm transition-all';
+        } else {
+            receivableBtn.className = 'loan-type-btn flex-1 py-sm rounded-lg border-2 border-secondary bg-secondary text-on-secondary font-bold text-sm transition-all';
+            payableBtn.className = 'loan-type-btn flex-1 py-sm rounded-lg border-2 border-outline-variant text-on-surface-variant font-bold text-sm transition-all';
+        }
+    }
+
+    document.querySelectorAll('.loan-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => setLoanType(btn.getAttribute('data-loantype')));
+    });
+
+    // Dynamic quota inputs generator
+    function generateQuotaInputs() {
+        const total = parseFloat(document.getElementById('loan-total').value) || 0;
+        const count = parseInt(document.getElementById('loan-quotas').value) || 0;
+        const type = document.getElementById('loan-quota-type').value;
+        const editor = document.getElementById('loan-quotas-editor');
+        const inputsContainer = document.getElementById('loan-quotas-inputs');
+
+        if (type === 'variable' && count > 0) {
+            editor.classList.remove('hidden');
+            inputsContainer.innerHTML = '';
+            const equalAmount = count > 0 ? (total / count).toFixed(2) : 0;
+            for (let i = 1; i <= count; i++) {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-sm';
+                row.innerHTML = `
+                    <span class="text-xs text-on-surface-variant w-16 shrink-0 font-bold">Cuota ${i}</span>
+                    <input type="number" class="quota-input flex-1 bg-background border border-outline-variant rounded-lg px-sm py-xs text-sm font-tabular-nums focus:border-primary outline-none transition-all" data-quota="${i}" value="${equalAmount}" min="0" step="0.01"/>
+                `;
+                inputsContainer.appendChild(row);
+            }
+            // Attach listeners to update running total
+            inputsContainer.querySelectorAll('.quota-input').forEach(inp => {
+                inp.addEventListener('input', updateVariableTotal);
+            });
+            updateVariableTotal();
+        } else {
+            editor.classList.add('hidden');
+        }
+    }
+
+    function updateVariableTotal() {
+        let sum = 0;
+        document.querySelectorAll('.quota-input').forEach(inp => { sum += parseFloat(inp.value) || 0; });
+        document.getElementById('loan-variable-total').textContent = formatMoney(sum);
+    }
+
+    document.getElementById('loan-total').addEventListener('input', generateQuotaInputs);
+    document.getElementById('loan-quotas').addEventListener('input', generateQuotaInputs);
+    document.getElementById('loan-quota-type').addEventListener('change', generateQuotaInputs);
+
+    // Save new loan
+    document.getElementById('form-new-loan').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('loan-error-msg');
+        errorEl.classList.add('hidden');
+
+        const name = document.getElementById('loan-name').value.trim();
+        const total = parseFloat(document.getElementById('loan-total').value);
+        const quotaCount = parseInt(document.getElementById('loan-quotas').value);
+        const quotaType = document.getElementById('loan-quota-type').value;
+        const desc = document.getElementById('loan-desc').value.trim();
+
+        if (!name || isNaN(total) || total <= 0 || isNaN(quotaCount) || quotaCount < 1) {
+            errorEl.textContent = 'Completa todos los campos correctamente.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        // Build quotas array
+        let quotas = [];
+        if (quotaType === 'variable') {
+            const inputs = document.querySelectorAll('.quota-input');
+            inputs.forEach((inp, idx) => {
+                quotas.push({ number: idx + 1, amount: parseFloat(inp.value) || 0, status: 'pending' });
+            });
+        } else {
+            const equalAmt = parseFloat((total / quotaCount).toFixed(2));
+            for (let i = 1; i <= quotaCount; i++) {
+                quotas.push({ number: i, amount: equalAmt, status: 'pending' });
+            }
+        }
+
+        const newLoan = {
+            id: 'loan-' + Date.now(),
+            type: currentLoanType,
+            name,
+            amount: total,
+            desc: desc || `${quotaCount} cuota${quotaCount > 1 ? 's' : ''}`,
+            status: 'PENDIENTE',
+            quotas
+        };
+
+        if (!state.loans) state.loans = [];
+        state.loans.push(newLoan);
+        await saveState();
+        renderLoans();
+        renderMonthlyBalance();
+        closeLoanModal();
+        showToast(`Préstamo de ${name} guardado.`, 'success');
+    });
+
+    // --- Monthly Budget Calculation & Render ---
+    function renderMonthlyBalance() {
+        if (!document.getElementById('total-fixed-expenses')) return;
+
+        const budget = state.monthlyBudget || 0;
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // Fixed: sum of all bills + current month loan quotas (payable type)
+        let fixedTotal = 0;
+        (state.bills || []).forEach(b => { fixedTotal += b.amount || 0; });
+        (state.loans || []).filter(l => l.type === 'payable' && l.quotas).forEach(loan => {
+            // Count how many quotas are pending (first unpaid = current month)
+            const nextPending = loan.quotas.find(q => q.status === 'pending');
+            if (nextPending) fixedTotal += nextPending.amount;
+        });
+
+        // Extraordinary: outgoing transactions this month
+        let extraTotal = 0;
+        (state.transactions || []).filter(tx => tx.type === 'outgoing').forEach(tx => {
+            // Try to parse date; if not, count all as current period
+            extraTotal += tx.amount || 0;
+        });
+
+        const totalSpent = fixedTotal + extraTotal;
+        const percent = budget > 0 ? Math.min(Math.round((totalSpent / budget) * 100), 100) : 0;
+        const remaining = budget - totalSpent;
+
+        document.getElementById('total-fixed-expenses').textContent = formatMoney(fixedTotal);
+        document.getElementById('total-extraordinary-expenses').textContent = formatMoney(extraTotal);
+        document.getElementById('budget-percentage').textContent = `${percent}%`;
+        document.getElementById('budget-spent-ratio').textContent = `${formatMoney(totalSpent)} / ${formatMoney(budget)}`;
+        document.getElementById('budget-progress-bar').style.width = `${percent}%`;
+        document.getElementById('budget-progress-bar').className = `h-full transition-all duration-300 ${percent >= 90 ? 'bg-error' : percent >= 70 ? 'bg-tertiary-container' : 'bg-primary'}`;
+
+        const statusEl = document.getElementById('budget-status-text');
+        if (budget === 0) {
+            statusEl.textContent = 'Configura tu presupuesto en Ajustes.';
+        } else if (remaining >= 0) {
+            statusEl.textContent = `Te quedan ${formatMoney(remaining)} disponibles este mes.`;
+        } else {
+            statusEl.textContent = `Excediste el presupuesto en ${formatMoney(Math.abs(remaining))}.`;
+        }
+    }
+
+    // Override renderAll to also render monthly balance
+    const _originalRenderAll = renderAll;
+
     // --- Firebase Auth State Listener (Unified Init) ---
     auth.onAuthStateChanged(async (user) => {
         const viewLogin = document.getElementById('view-login');
@@ -910,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';
             
             renderAll();
+            renderMonthlyBalance();
             switchTab('dashboard');
         } else {
             // Reset to defaults

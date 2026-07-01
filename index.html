@@ -162,12 +162,32 @@
         </header>
 
         <!-- VIEW: Onboarding / Login (Shown if not logged in) -->
-        <div id="view-login" class="px-gutter py-md max-w-sm mx-auto mt-20 bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 space-y-md">
-            <div class="text-center">
-                <h2 id="login-title" class="text-headline-md font-bold text-primary">Iniciar Sesión</h2>
+        <div id="view-login" class="px-gutter py-md max-w-sm mx-auto mt-16 bg-white rounded-2xl shadow-[0px_8px_40px_-8px_rgba(26,35,126,0.18)] border border-outline-variant/30 space-y-md overflow-hidden">
+            <!-- Logo / Brand header -->
+            <div class="text-center pt-md pb-xs">
+                <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-sm shadow-lg">
+                    <span class="material-symbols-outlined text-white text-[36px]">account_balance_wallet</span>
+                </div>
+                <h2 id="login-title" class="text-headline-md font-bold text-primary mt-sm">Iniciar Sesión</h2>
                 <p id="login-subtitle" class="text-on-surface-variant font-body-sm">Ingresa a tu cuenta de WealthFlow</p>
             </div>
+
+            <!-- Google Sign-in -->
+            <button id="btn-google-signin" type="button" class="w-full flex items-center justify-center gap-sm border border-outline-variant rounded-lg py-sm px-md hover:bg-surface-container-low active:scale-95 transition-all font-body-md font-bold text-on-surface">
+                <svg class="w-5 h-5 shrink-0" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.91 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Continuar con Google
+            </button>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-sm">
+                <div class="flex-1 h-px bg-outline-variant"></div>
+                <span class="text-xs text-on-surface-variant font-medium">o con correo</span>
+                <div class="flex-1 h-px bg-outline-variant"></div>
+            </div>
+
+            <!-- Email / Password Form -->
             <form id="login-form" class="space-y-sm">
+                <!-- Register-only fields (hidden by default) -->
                 <div id="register-fields" class="hidden space-y-sm">
                     <div>
                         <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
@@ -186,17 +206,20 @@
                     <label class="font-label-md text-on-surface-variant block mb-1">Contraseña</label>
                     <input type="password" id="login-password" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="••••••••" required/>
                 </div>
-                <p id="auth-error-msg" class="text-xs text-error font-bold hidden"></p>
-                <button type="submit" id="btn-login-submit" class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                <p id="auth-error-msg" class="text-xs text-error font-bold hidden rounded-lg bg-error/5 p-xs px-sm"></p>
+                <button type="submit" id="btn-login-submit" class="w-full bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95 mt-xs">
                     Ingresar de forma segura
                 </button>
             </form>
-            <div class="text-center pt-xs">
+
+            <!-- Toggle Register/Login -->
+            <div class="text-center pb-md">
                 <button id="btn-toggle-auth" class="text-xs font-bold text-primary hover:underline">
                     ¿No tienes cuenta? Regístrate gratis
                 </button>
             </div>
         </div>
+
 
         <!-- APP TABS CONTAINER (Hidden initially, shown after login) -->
         <div id="app-tabs-container" class="hidden">
@@ -547,6 +570,55 @@
                     <button class="pay-filter-btn font-body-md text-body-md text-on-surface-variant hover:text-primary pb-sm px-base transition-all whitespace-nowrap" data-category="service">Servicios</button>
                 </div>
 
+                <!-- Budget & Monthly Balance Section -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-md mb-lg">
+                    <!-- Card: Monthly Budget Progress -->
+                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-xs">
+                                <span class="font-label-md text-outline uppercase tracking-wider">Presupuesto Mensual</span>
+                                <span class="text-xs font-bold text-primary" id="budget-percentage">0%</span>
+                            </div>
+                            <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface font-tabular-nums" id="budget-spent-ratio">$ 0 / $ 0</h4>
+                        </div>
+                        <div class="mt-md">
+                            <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                                <div id="budget-progress-bar" class="h-full bg-primary transition-all duration-300 w-[0%]"></div>
+                            </div>
+                            <p class="text-[10px] text-on-surface-variant mt-1" id="budget-status-text">Cargando presupuesto...</p>
+                        </div>
+                    </div>
+
+                    <!-- Card: Fixed Expenses -->
+                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                        <div>
+                            <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Fijos</span>
+                            <h4 class="font-headline-sm text-headline-sm font-bold text-error font-tabular-nums" id="total-fixed-expenses">$ 0,00</h4>
+                        </div>
+                        <p class="text-xs text-on-surface-variant mt-sm">Servicios recurrentes y cuotas de préstamos</p>
+                    </div>
+
+                    <!-- Card: Extraordinary Expenses -->
+                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                        <div>
+                            <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Extraordinarios</span>
+                            <h4 class="font-headline-sm text-headline-sm font-bold text-tertiary-container font-tabular-nums" id="total-extraordinary-expenses">$ 0,00</h4>
+                        </div>
+                        <p class="text-xs text-on-surface-variant mt-sm">Compras ocasionales, salidas y otros gastos</p>
+                    </div>
+
+                    <!-- Card: Actions (Create Loan) -->
+                    <div class="bg-primary/5 border border-primary/20 p-md rounded-xl flex flex-col justify-between items-stretch min-h-[120px]">
+                        <div>
+                            <h4 class="font-body-md font-bold text-primary">Gestión de Préstamos</h4>
+                            <p class="text-xs text-on-surface-variant mt-xs">Ingresa préstamos con cuotas fijas o variables.</p>
+                        </div>
+                        <button id="btn-open-loan-modal" type="button" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95 text-center text-sm">
+                            Nuevo Préstamo
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
                     <!-- Left stats column (4 cols) -->
                     <div class="lg:col-span-4 space-y-md">
@@ -797,6 +869,22 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Monthly Budget Settings -->
+                <div class="max-w-2xl bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 mt-md">
+                    <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Presupuesto Mensual</h3>
+                    <p class="font-body-sm text-on-surface-variant mb-md">Establece un límite de gasto mensual. Se usará para calcular tu balance en la sección de Vencimientos.</p>
+                    <div class="flex gap-sm items-end">
+                        <div class="flex-1">
+                            <label class="font-label-md text-on-surface-variant block mb-1">Monto del Presupuesto (ARS)</label>
+                            <input type="number" id="settings-budget" min="0" step="1000" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-tabular-nums" placeholder="ej. 300000"/>
+                        </div>
+                        <button type="button" id="btn-save-budget" class="bg-primary text-on-primary font-bold px-lg py-sm rounded-lg hover:shadow-lg transition-all active:scale-95 whitespace-nowrap">
+                            Guardar
+                        </button>
+                    </div>
+                    <p id="budget-saved-label" class="text-xs text-secondary font-bold mt-sm hidden">✓ Presupuesto guardado.</p>
+                </div>
             </div>
 
         </div>
@@ -944,6 +1032,67 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <!-- Loan Creation Modal -->
+    <div id="modal-loan" class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-lg relative animate-modal max-h-[90vh] overflow-y-auto">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-loan-modal">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Nuevo Préstamo</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Registra un préstamo con cuotas fijas o variables.</p>
+            <form id="form-new-loan" class="space-y-md">
+                <!-- Loan type -->
+                <div class="flex gap-sm">
+                    <button type="button" data-loantype="payable" id="loan-type-payable" class="loan-type-btn flex-1 py-sm rounded-lg border-2 border-primary bg-primary text-on-primary font-bold text-sm transition-all">💸 Debo pagar</button>
+                    <button type="button" data-loantype="receivable" id="loan-type-receivable" class="loan-type-btn flex-1 py-sm rounded-lg border-2 border-outline-variant text-on-surface-variant font-bold text-sm transition-all">💰 Me deben</button>
+                </div>
+                <!-- Name / Contact -->
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Nombre o Contacto</label>
+                    <input type="text" id="loan-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Juan Pérez" required/>
+                </div>
+                <!-- Total amount -->
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Monto Total del Préstamo</label>
+                    <input type="number" id="loan-total" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-tabular-nums" placeholder="$ 0,00" min="0" step="0.01" required/>
+                </div>
+                <!-- Quotas count -->
+                <div class="grid grid-cols-2 gap-md">
+                    <div>
+                        <label class="font-label-md text-on-surface-variant block mb-1">Cantidad de Cuotas</label>
+                        <input type="number" id="loan-quotas" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. 12" min="1" required/>
+                    </div>
+                    <div>
+                        <label class="font-label-md text-on-surface-variant block mb-1">Tipo de Cuotas</label>
+                        <select id="loan-quota-type" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                            <option value="equal">Iguales</option>
+                            <option value="variable">Variables</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Dynamic quotas editor -->
+                <div id="loan-quotas-editor" class="hidden space-y-sm">
+                    <p class="font-label-md text-on-surface-variant">Editar monto de cada cuota:</p>
+                    <div id="loan-quotas-inputs" class="space-y-xs max-h-48 overflow-y-auto pr-xs"></div>
+                    <div class="flex justify-between items-center text-xs text-on-surface-variant">
+                        <span>Total ingresado: </span>
+                        <span id="loan-variable-total" class="font-bold font-tabular-nums text-primary">$ 0,00</span>
+                    </div>
+                </div>
+                <!-- Description / notes -->
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Descripción (opcional)</label>
+                    <input type="text" id="loan-desc" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Préstamo para auto"/>
+                </div>
+                <p id="loan-error-msg" class="text-xs text-error font-bold hidden"></p>
+                <div class="flex gap-sm pt-xs">
+                    <button type="button" id="btn-cancel-loan" class="flex-1 border border-outline-variant text-on-surface-variant font-bold py-sm rounded-lg hover:bg-surface-container-low transition-all">Cancelar</button>
+                    <button type="submit" id="btn-save-loan" class="flex-1 bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">Guardar Préstamo</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Application Interactivity Script -->
     <script src="app.js"></script>
