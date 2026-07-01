@@ -1,4 +1,4 @@
-<!-- WealthFlow v1.6 | build: 2026-07-01 -->
+<!-- WealthFlow v1.7 | build: 2026-07-01 -->
 <!DOCTYPE html>
 <html class="light" lang="es">
 <head>
@@ -115,6 +115,10 @@
             <button data-tab="settings" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
                 <span class="material-symbols-outlined">settings</span>
                 <span class="font-body-md">Ajustes</span>
+            </button>
+            <button id="nav-btn-admin" data-tab="admin" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left hidden">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+                <span class="font-body-md">Administración</span>
             </button>
         </nav>
         
@@ -704,8 +708,8 @@
                             <h4 class="font-body-lg text-on-surface font-bold">MercadoPago</h4>
                             <p class="font-body-sm text-on-surface-variant mb-md">Sincronización de ventas y transferencias cada 15 min.</p>
                             <div class="flex items-center justify-between pt-md border-t border-outline-variant/50">
-                                <span class="font-label-md text-outline">Última sync: Hace 4m</span>
-                                <button class="text-primary font-bold font-label-md hover:underline">Configurar</button>
+                                <span class="font-label-md text-outline" id="sync-time-mp">Última sync: Hace 4m</span>
+                                <button id="btn-sync-mp" class="text-primary font-bold font-label-md hover:underline">Sincronizar</button>
                             </div>
                         </div>
 
@@ -722,8 +726,8 @@
                             <h4 class="font-body-lg text-on-surface font-bold">Banco Galicia</h4>
                             <p class="font-body-sm text-on-surface-variant mb-md">Conexión corporativa vía API Galicia Office.</p>
                             <div class="flex items-center justify-between pt-md border-t border-outline-variant/50">
-                                <span class="font-label-md text-outline">Última sync: Hace 1h</span>
-                                <button class="text-primary font-bold font-label-md hover:underline">Configurar</button>
+                                <span class="font-label-md text-outline" id="sync-time-galicia">Última sync: Hace 1h</span>
+                                <button id="btn-sync-galicia" class="text-primary font-bold font-label-md hover:underline">Sincronizar</button>
                             </div>
                         </div>
 
@@ -888,6 +892,71 @@
                 </div>
             </div>
 
+            <!-- TAB: Admin (Panel de Administración) -->
+            <div id="tab-admin" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
+                <div class="space-y-lg">
+                    <!-- Header -->
+                    <div>
+                        <h2 class="font-headline-md text-headline-md font-bold text-primary">Consola de Administración</h2>
+                        <p class="text-on-surface-variant font-label-md mt-1">Gestión global de usuarios, saldos y estadísticas de la plataforma.</p>
+                    </div>
+
+                    <!-- Global stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+                        <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase">Usuarios Registrados</span>
+                            <p class="font-headline-md text-headline-md font-bold text-primary mt-xs" id="admin-total-users">0</p>
+                        </div>
+                        <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase">Fondos Consolidados</span>
+                            <p class="font-headline-md text-headline-md font-bold text-secondary mt-xs" id="admin-total-assets">$ 0,00</p>
+                        </div>
+                        <div class="bg-white p-md rounded-xl border border-outline-variant/30 shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)]">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase">Transacciones Totales</span>
+                            <p class="font-headline-md text-headline-md font-bold text-tertiary-container mt-xs" id="admin-total-txs">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Firestore Permission Alert -->
+                    <div id="admin-permission-alert" class="bg-error-container text-on-error-container p-md rounded-xl border border-error/20 flex gap-md items-start hidden">
+                        <span class="material-symbols-outlined">warning</span>
+                        <div>
+                            <p class="font-body-md font-bold">Error de Acceso (Permisos de Firestore)</p>
+                            <p class="font-body-sm mt-xs">No se pueden leer los documentos de otros usuarios debido a las reglas de seguridad de Firestore. Para habilitar el panel, ve a la Consola de Firebase -> Firestore Database -> Reglas, y permite la lectura/escritura si el usuario es administrador.</p>
+                        </div>
+                    </div>
+
+                    <!-- User Table Card -->
+                    <div class="bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 overflow-hidden">
+                        <div class="p-md border-b border-outline-variant flex items-center justify-between">
+                            <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Usuarios en el Sistema</h3>
+                            <button id="btn-admin-refresh" class="flex items-center gap-xs text-primary font-bold font-label-md hover:opacity-80 transition-opacity">
+                                <span class="material-symbols-outlined text-[18px]">refresh</span>
+                                <span>Actualizar</span>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto w-full">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-surface-container-low border-b border-outline-variant font-label-md text-on-surface-variant">
+                                        <th class="p-md">Usuario</th>
+                                        <th class="p-md">Alias / Email</th>
+                                        <th class="p-md text-right">Saldo MP</th>
+                                        <th class="p-md text-right">Saldo Galicia</th>
+                                        <th class="p-md text-right">Saldo Total (ARS)</th>
+                                        <th class="p-md">Rol</th>
+                                        <th class="p-md text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-user-table-body" class="font-body-md divide-y divide-outline-variant/30">
+                                    <!-- Dynamic rows via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -908,6 +977,10 @@
         <button data-tab="integrations" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
             <span class="material-symbols-outlined">sync_alt</span>
             <span class="font-label-md text-label-md">Connect</span>
+        </button>
+        <button id="mobile-nav-btn-admin" data-tab="admin" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg hidden">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <span class="font-label-md text-label-md">Admin</span>
         </button>
     </nav>
 
@@ -936,6 +1009,15 @@
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Monto ($ o u$s)</label>
                     <input type="number" step="0.01" min="1" id="send-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="0.00" required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Categoría</label>
+                    <select id="send-category" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                        <option value="Alimentación">Alimentación</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Ocio">Ocio</option>
+                        <option value="Otros" selected>Otros</option>
+                    </select>
                 </div>
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Concepto / Comentario</label>
@@ -1116,6 +1198,120 @@
                     <button type="submit" id="btn-save-loan" class="flex-1 bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">Guardar Préstamo</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Admin Edit User -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-admin-edit">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-admin-edit">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Gestionar Usuario</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md" id="admin-edit-user-title">Modifica el perfil o ajusta el saldo.</p>
+            
+            <form id="form-admin-edit-user" class="space-y-sm">
+                <input type="hidden" id="admin-edit-uid" />
+                
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Nombre Completo</label>
+                    <input type="text" id="admin-edit-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Alias</label>
+                    <input type="text" id="admin-edit-alias" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" required/>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Rol</label>
+                    <select id="admin-edit-role" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                        <option value="user">Usuario</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                
+                <div class="border-t border-outline-variant/50 pt-sm space-y-sm">
+                    <p class="font-label-md text-on-surface font-bold">Ajustar Saldo (Balance Adjustment)</p>
+                    <div class="grid grid-cols-2 gap-sm">
+                        <div>
+                            <label class="font-label-sm text-on-surface-variant block mb-1">Billetera</label>
+                            <select id="admin-adj-wallet" class="w-full bg-background border border-outline-variant rounded-lg px-sm py-xs focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none text-xs">
+                                <option value="MercadoPago">MercadoPago</option>
+                                <option value="Galicia">Banco Galicia</option>
+                                <option value="PayPal">PayPal (USD)</option>
+                                <option value="Prex">Prex</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-label-sm text-on-surface-variant block mb-1">Monto de Ajuste</label>
+                            <input type="number" step="0.01" id="admin-adj-amount" class="w-full bg-background border border-outline-variant rounded-lg px-sm py-xs focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none text-xs" placeholder="ej. 5000 o -2500"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-sm pt-md">
+                    <button type="button" id="btn-admin-delete-user" class="bg-error/10 text-error font-bold px-sm py-sm rounded-lg hover:bg-error/20 transition-colors text-xs whitespace-nowrap">
+                        Eliminar
+                    </button>
+                    <button type="button" id="btn-admin-reset-user" class="border border-outline-variant text-on-surface-variant font-bold px-sm py-sm rounded-lg hover:bg-surface-container transition-colors text-xs whitespace-nowrap">
+                        Resetear
+                    </button>
+                    <button type="submit" class="flex-grow bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95 text-sm">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Loan Details & Quota Pay -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-loan-detail">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-loan-detail">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs" id="loan-detail-title">Detalle del Préstamo</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md" id="loan-detail-subtitle">Cargado por Dennis A.</p>
+            
+            <div class="space-y-md">
+                <!-- Loan Summary Card -->
+                <div class="p-md rounded-lg bg-surface-container-low flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-on-surface-variant uppercase font-bold" id="loan-detail-type">Tipo</span>
+                        <p class="text-lg font-bold text-on-surface" id="loan-detail-amount">$ 0,00</p>
+                    </div>
+                    <span id="loan-detail-status" class="px-xs py-base rounded-full font-label-md font-bold">PENDIENTE</span>
+                </div>
+
+                <!-- Quota Pay Section (if payable and has pending quotas) -->
+                <div id="loan-pay-section" class="p-md rounded-lg border border-outline-variant space-y-sm hidden">
+                    <p class="font-label-md text-on-surface font-bold">Pagar Siguiente Cuota</p>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-on-surface-variant font-bold" id="loan-next-quota-label">Cuota 1</p>
+                            <p class="text-sm font-bold text-primary" id="loan-next-quota-amount">$ 0,00</p>
+                        </div>
+                        <div class="flex items-center gap-xs">
+                            <select id="loan-pay-source" class="bg-background border border-outline-variant rounded-lg px-sm py-xs text-xs outline-none focus:border-primary">
+                                <option value="MercadoPago">MercadoPago</option>
+                                <option value="Galicia">Banco Galicia</option>
+                                <option value="Prex">Prex</option>
+                                <option value="PayPal">PayPal</option>
+                            </select>
+                            <button id="btn-pay-next-quota" class="bg-primary text-on-primary font-bold px-md py-xs rounded-lg text-xs hover:shadow-md transition-all active:scale-95">
+                                Pagar Cuota
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quotas List -->
+                <div>
+                    <h4 class="font-label-md text-on-surface-variant font-bold mb-xs uppercase tracking-wider">Cronograma de Cuotas</h4>
+                    <div id="loan-quotas-list" class="max-h-48 overflow-y-auto space-y-xs divide-y divide-outline-variant/30 pr-xs">
+                        <!-- Dynamic quota lines -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

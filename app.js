@@ -353,21 +353,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Render P2P Loans
+    let selectedLoanId = null;
+
+    function openLoanDetailModal(loanId) {
+        const loan = state.loans.find(l => l.id === loanId);
+        if (!loan) return;
+        selectedLoanId = loanId;
+
+        document.getElementById('loan-detail-title').textContent = loan.name;
+        document.getElementById('loan-detail-subtitle').textContent = loan.desc || 'Detalles del préstamo';
+        
+        const typeEl = document.getElementById('loan-detail-type');
+        typeEl.textContent = loan.type === 'receivable' ? 'A Cobrar (Préstamo Activo)' : 'Por Pagar (Deuda Activa)';
+        
+        const amountEl = document.getElementById('loan-detail-amount');
+        amountEl.textContent = formatMoney(loan.amount);
+        amountEl.className = `text-lg font-bold ${loan.type === 'receivable' ? 'text-secondary' : 'text-on-tertiary-container'}`;
+
+        const statusEl = document.getElementById('loan-detail-status');
+        statusEl.textContent = loan.status;
+        statusEl.className = `px-xs py-base rounded-full font-label-md font-bold ${
+            loan.status === 'PAGADO' ? 'bg-secondary/15 text-secondary' : 'bg-outline-variant/30 text-on-surface-variant'
+        }`;
+
+        // Quotas list rendering
+        const quotasContainer = document.getElementById('loan-quotas-list');
+        quotasContainer.innerHTML = '';
+        
+        const paySection = document.getElementById('loan-pay-section');
+        paySection.classList.add('hidden');
+
+        let nextPendingQuota = null;
+
+        if (loan.quotas && loan.quotas.length > 0) {
+            loan.quotas.forEach(q => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-xs text-sm border-b border-outline-variant/20';
+                const statusLabel = q.status === 'paid' ? '✓ Pagada' : 'Pendiente';
+                const statusColor = q.status === 'paid' ? 'text-secondary font-bold' : 'text-on-surface-variant';
+                
+                row.innerHTML = `
+                    <span class="font-bold">Cuota ${q.number}</span>
+                    <span class="font-tabular-nums font-bold">${formatMoney(q.amount)}</span>
+                    <span class="${statusColor} text-xs">${statusLabel}</span>
+                `;
+                quotasContainer.appendChild(row);
+
+                if (q.status === 'pending' && !nextPendingQuota) {
+                    nextPendingQuota = q;
+                }
+            });
+        } else {
+            quotasContainer.innerHTML = '<p class="text-xs text-on-surface-variant py-sm">Sin cuotas registradas.</p>';
+        }
+
+        // Show pay section if it's payable and has pending quotas
+        if (loan.type === 'payable' && nextPendingQuota) {
+            paySection.classList.remove('hidden');
+            document.getElementById('loan-next-quota-label').textContent = `Siguiente: Cuota ${nextPendingQuota.number}`;
+            document.getElementById('loan-next-quota-amount').textContent = formatMoney(nextPendingQuota.amount);
+        }
+
+        openModal('modal-loan-detail');
+    }
+
     function renderLoans() {
         const loanContainer = document.getElementById('pay-p2p-list');
         loanContainer.innerHTML = '';
 
+        if (!state.loans || state.loans.length === 0) {
+            loanContainer.innerHTML = '<p class="text-xs text-on-surface-variant py-sm text-center">Sin préstamos activos.</p>';
+            return;
+        }
+
         state.loans.forEach(loan => {
             const isReceivable = loan.type === 'receivable';
-            const colorClass = isReceivable ? 'bg-secondary-container/20 border border-secondary/15' : 'bg-tertiary-fixed/30 border border-tertiary/15';
+            const colorClass = isReceivable ? 'bg-secondary-container/20 border border-secondary/15 hover:bg-secondary-container/30' : 'bg-tertiary-fixed/30 border border-tertiary/15 hover:bg-tertiary-fixed/40';
             const icon = isReceivable ? 'north_east' : 'south_west';
             const iconColor = isReceivable ? 'text-secondary' : 'text-on-tertiary-container';
             const avatarColor = isReceivable ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-fixed text-on-tertiary-fixed';
             const textClass = isReceivable ? 'text-secondary' : 'text-on-tertiary-container';
-            const avatarInitials = loan.name.split(' ').map(n => n[0]).join('');
+            const avatarInitials = loan.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
             const item = document.createElement('div');
-            item.className = `p-sm rounded-lg ${colorClass}`;
+            item.className = `p-sm rounded-lg ${colorClass} cursor-pointer hover:scale-[1.01] transition-all`;
             item.innerHTML = `
                 <div class="flex items-center justify-between mb-xs">
                     <span class="text-xs font-bold ${textClass} uppercase">${isReceivable ? 'A Cobrar' : 'Por Pagar'}</span>
@@ -385,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `;
+            item.addEventListener('click', () => openLoanDetailModal(loan.id));
             loanContainer.appendChild(item);
         });
     }
@@ -469,9 +539,14 @@ document.addEventListener('DOMContentLoaded', () => {
             'accounts': 'Mis Billeteras',
             'payments': 'Vencimientos y Servicios',
             'integrations': 'Integraciones y APIs',
-            'settings': 'Configuración de Cuenta'
+            'settings': 'Configuración de Cuenta',
+            'admin': 'Consola de Administración'
         };
         document.getElementById('view-title').textContent = titles[tabName] || 'WealthFlow';
+
+        if (tabName === 'admin') {
+            renderAdminPanel();
+        }
     }
 
     // --- Toast System ---
@@ -535,6 +610,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update Wallet
         state.wallets[dest] += amount;
 
+        const isUSD = dest === 'PayPal';
+
         // Add Transaction record
         state.transactions.unshift({
             id: Date.now(),
@@ -543,13 +620,14 @@ document.addEventListener('DOMContentLoaded', () => {
             amount: amount,
             wallet: dest === 'Galicia' ? 'Banco Galicia' : dest,
             date: 'Hoy • Reciente',
-            category: 'Ingreso'
+            category: 'Ingreso',
+            isUSD: isUSD
         });
 
         saveState();
         renderAll();
         closeModal('modal-add');
-        showToast(`Cargaste ${formatMoney(amount)} con éxito en ${dest}.`, 'success');
+        showToast(`Cargaste ${formatMoney(amount, isUSD)} con éxito en ${dest}.`, 'success');
     });
 
     // Send Money Submit
@@ -559,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const recipient = document.getElementById('send-recipient').value.trim();
         const amount = parseFloat(document.getElementById('send-amount').value);
         const concept = document.getElementById('send-concept').value.trim();
+        const category = document.getElementById('send-category').value;
 
         if (isNaN(amount) || amount <= 0) return;
 
@@ -572,6 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Subtract funds
         state.wallets[origin] -= amount;
 
+        const isUSD = origin === 'PayPal';
+
         // Add Transaction record
         state.transactions.unshift({
             id: Date.now(),
@@ -580,14 +661,15 @@ document.addEventListener('DOMContentLoaded', () => {
             amount: amount,
             wallet: origin === 'Galicia' ? 'Banco Galicia' : origin,
             date: 'Hoy • Reciente',
-            category: 'Otros',
-            note: concept || 'Envío de dinero'
+            category: category,
+            note: concept || 'Envío de dinero',
+            isUSD: isUSD
         });
 
         saveState();
         renderAll();
         closeModal('modal-send');
-        showToast(`Enviaste ${formatMoney(amount)} a ${recipient}.`, 'success');
+        showToast(`Enviaste ${formatMoney(amount, isUSD)} a ${recipient}.`, 'success');
     });
 
     // Pay Bill Submit
@@ -704,6 +786,51 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.clipboard.writeText(val)
             .then(() => showToast('Copiado al portapapeles', 'success'))
             .catch(() => showToast('No se pudo copiar', 'error'));
+    });
+
+    // Sync MercadoPago
+    document.getElementById('btn-sync-mp').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-sync-mp');
+        btn.disabled = true;
+        btn.textContent = 'Sincronizando...';
+        showToast('Conectando con la API de MercadoPago...', 'info');
+
+        setTimeout(async () => {
+            const extra = Math.floor(Math.random() * 15000) + 1000;
+            state.wallets.MercadoPago += extra;
+            state.transactions.unshift({
+                id: Date.now(),
+                type: 'incoming',
+                title: 'Venta Sincronizada MP',
+                amount: extra,
+                wallet: 'MercadoPago',
+                date: 'Hoy • Reciente',
+                category: 'Ingreso'
+            });
+            const timeLabel = document.getElementById('sync-time-mp');
+            if (timeLabel) timeLabel.textContent = 'Última sync: Recién';
+            await saveState();
+            renderAll();
+            btn.disabled = false;
+            btn.textContent = 'Sincronizar';
+            showToast(`Sincronización completa. Se acreditaron ${formatMoney(extra)}.`, 'success');
+        }, 1500);
+    });
+
+    // Sync Galicia
+    document.getElementById('btn-sync-galicia').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-sync-galicia');
+        btn.disabled = true;
+        btn.textContent = 'Sincronizando...';
+        showToast('Verificando API Galicia Office...', 'info');
+
+        setTimeout(async () => {
+            const timeLabel = document.getElementById('sync-time-galicia');
+            if (timeLabel) timeLabel.textContent = 'Última sync: Recién';
+            btn.disabled = false;
+            btn.textContent = 'Sincronizar';
+            showToast('Banco Galicia sincronizado (sin movimientos nuevos).', 'success');
+        }, 1500);
     });
 
     // --- Onboarding Profile and Settings form ---
@@ -1145,25 +1272,291 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Override renderAll to also render monthly balance
-    const _originalRenderAll = renderAll;
+    // --- Admin Console Logic ---
+    const ADMIN_EMAILS = ["contacto@kofmanstudio.com", "airesestudio@gmail.com"];
+    let adminUsersList = [];
+
+    async function renderAdminPanel() {
+        const totalUsersEl = document.getElementById('admin-total-users');
+        const totalAssetsEl = document.getElementById('admin-total-assets');
+        const totalTxsEl = document.getElementById('admin-total-txs');
+        const alertEl = document.getElementById('admin-permission-alert');
+        const tableBody = document.getElementById('admin-user-table-body');
+
+        if (!tableBody) return;
+
+        alertEl.classList.add('hidden');
+        tableBody.innerHTML = '';
+
+        try {
+            const querySnapshot = await db.collection("users").get();
+            adminUsersList = [];
+            let totalUsers = 0;
+            let totalAssetsARS = 0;
+            let totalTransactions = 0;
+
+            querySnapshot.forEach((doc) => {
+                const userData = doc.data();
+                userData.uid = doc.id;
+                adminUsersList.push(userData);
+                totalUsers++;
+
+                const userWallets = userData.wallets || {};
+                const ARS = (userWallets.Galicia || 0) + (userWallets.MercadoPago || 0) + (userWallets.Prex || 0);
+                const USD = (userWallets.PayPal || 0) * (userData.exchangeRate || 1000);
+                const userTotalARS = ARS + USD;
+                totalAssetsARS += userTotalARS;
+
+                if (userData.transactions) {
+                    totalTransactions += userData.transactions.length;
+                }
+
+                const name = userData.user ? userData.user.name : "Sin Nombre";
+                const alias = userData.user ? userData.user.alias : "sin.alias";
+                const email = userData.user ? (userData.user.email || alias) : alias;
+                const role = (userData.user && userData.user.role) === 'admin' ? 'Admin' : 'Usuario';
+                const roleClass = role === 'Admin' ? 'bg-primary/10 text-primary font-bold' : 'bg-surface-variant text-on-surface-variant';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-surface-container-lowest transition-colors border-b border-outline-variant/30';
+                tr.innerHTML = `
+                    <td class="p-md font-bold text-on-surface">${name}</td>
+                    <td class="p-md text-on-surface-variant font-tabular-nums text-xs">${email}</td>
+                    <td class="p-md text-right font-tabular-nums font-bold">${formatMoney(userWallets.MercadoPago || 0)}</td>
+                    <td class="p-md text-right font-tabular-nums font-bold">${formatMoney(userWallets.Galicia || 0)}</td>
+                    <td class="p-md text-right font-tabular-nums font-bold text-primary">${formatMoney(userTotalARS)}</td>
+                    <td class="p-md">
+                        <span class="px-xs py-base rounded-full font-label-md ${roleClass}">${role}</span>
+                    </td>
+                    <td class="p-md text-center">
+                        <button class="btn-admin-manage text-primary font-bold font-label-md hover:underline" data-uid="${doc.id}">Gestionar</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            totalUsersEl.textContent = totalUsers;
+            totalAssetsEl.textContent = formatMoney(totalAssetsARS);
+            totalTxsEl.textContent = totalTransactions;
+
+            tableBody.querySelectorAll('.btn-admin-manage').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const uid = btn.getAttribute('data-uid');
+                    openAdminEditModal(uid);
+                });
+            });
+
+        } catch (error) {
+            console.error("Admin panel error querying Firestore:", error);
+            if (error.code === 'permission-denied') {
+                alertEl.classList.remove('hidden');
+            } else {
+                showToast("Error al cargar panel de administración", "error");
+            }
+        }
+    }
+
+    let adminSelectedUid = null;
+
+    function openAdminEditModal(uid) {
+        const user = adminUsersList.find(u => u.uid === uid);
+        if (!user) return;
+        adminSelectedUid = uid;
+
+        document.getElementById('admin-edit-uid').value = uid;
+        document.getElementById('admin-edit-name').value = user.user ? user.user.name : '';
+        document.getElementById('admin-edit-alias').value = user.user ? user.user.alias : '';
+        document.getElementById('admin-edit-role').value = (user.user && user.user.role) === 'admin' ? 'admin' : 'user';
+        
+        document.getElementById('admin-adj-amount').value = '';
+        document.getElementById('admin-edit-user-title').textContent = `Gestionar cuenta de ${user.user ? user.user.name : 'Usuario'}`;
+
+        openModal('modal-admin-edit');
+    }
+
+    // Admin user details form submit
+    document.getElementById('form-admin-edit-user').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!adminSelectedUid) return;
+
+        const user = adminUsersList.find(u => u.uid === adminSelectedUid);
+        if (!user) return;
+
+        const newName = document.getElementById('admin-edit-name').value.trim();
+        const newAlias = document.getElementById('admin-edit-alias').value.trim();
+        const newRole = document.getElementById('admin-edit-role').value;
+        const adjWallet = document.getElementById('admin-adj-wallet').value;
+        const adjAmount = parseFloat(document.getElementById('admin-adj-amount').value);
+
+        if (!user.user) user.user = {};
+        user.user.name = newName;
+        user.user.alias = newAlias;
+        user.user.role = newRole;
+
+        if (!isNaN(adjAmount) && adjAmount !== 0) {
+            if (!user.wallets) user.wallets = {};
+            user.wallets[adjWallet] = (user.wallets[adjWallet] || 0) + adjAmount;
+
+            if (!user.transactions) user.transactions = [];
+            user.transactions.unshift({
+                id: Date.now(),
+                type: adjAmount > 0 ? 'incoming' : 'outgoing',
+                title: 'Ajuste de Administrador',
+                amount: Math.abs(adjAmount),
+                wallet: adjWallet === 'Galicia' ? 'Banco Galicia' : adjWallet,
+                date: 'Hoy • Ajuste',
+                category: adjAmount > 0 ? 'Ingreso' : 'Otros',
+                isUSD: adjWallet === 'PayPal'
+            });
+        }
+
+        try {
+            await db.collection("users").doc(adminSelectedUid).set(user);
+            showToast("Cambios guardados con éxito en Firestore.", "success");
+            closeModal('modal-admin-edit');
+            renderAdminPanel();
+        } catch (error) {
+            console.error("Error saving admin adjustments:", error);
+            showToast("No se pudo actualizar el usuario.", "error");
+        }
+    });
+
+    // Reset user to defaults
+    document.getElementById('btn-admin-reset-user').addEventListener('click', async () => {
+        if (!adminSelectedUid) return;
+        const user = adminUsersList.find(u => u.uid === adminSelectedUid);
+        if (!user) return;
+
+        if (confirm(`¿Estás seguro de que deseas resetear los datos de ${user.user ? user.user.name : 'este usuario'}? Se volverá al saldo de fábrica.`)) {
+            const template = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            template.isLoggedIn = true;
+            template.user.name = user.user ? user.user.name : "Usuario Nuevo";
+            template.user.alias = user.user ? user.user.alias : "usuario.wallet";
+            template.user.role = (user.user && user.user.role) === 'admin' ? 'admin' : 'user';
+
+            try {
+                await db.collection("users").doc(adminSelectedUid).set(template);
+                showToast("Datos de usuario reseteados con éxito.", "success");
+                closeModal('modal-admin-edit');
+                renderAdminPanel();
+            } catch (error) {
+                console.error("Error resetting user:", error);
+                showToast("Error al resetear usuario.", "error");
+            }
+        }
+    });
+
+    // Delete user document
+    document.getElementById('btn-admin-delete-user').addEventListener('click', async () => {
+        if (!adminSelectedUid) return;
+        const user = adminUsersList.find(u => u.uid === adminSelectedUid);
+        if (!user) return;
+
+        if (confirm(`⚠ ATENCIÓN: ¿Deseas eliminar permanentemente la cuenta de ${user.user ? user.user.name : 'este usuario'}? Esta acción no se puede deshacer.`)) {
+            try {
+                await db.collection("users").doc(adminSelectedUid).delete();
+                showToast("Usuario eliminado correctamente.", "success");
+                closeModal('modal-admin-edit');
+                renderAdminPanel();
+            } catch (error) {
+                console.error("Error deleting user:", error);
+                showToast("Error al eliminar usuario.", "error");
+            }
+        }
+    });
+
+    // Refresh Admin Panel
+    document.getElementById('btn-admin-refresh').addEventListener('click', () => {
+        renderAdminPanel();
+        showToast("Panel administrativo actualizado.", "info");
+    });
+
+    // Close Modals for Admin and Loan Detail
+    document.getElementById('btn-close-admin-edit').addEventListener('click', () => closeModal('modal-admin-edit'));
+    document.getElementById('btn-close-loan-detail').addEventListener('click', () => closeModal('modal-loan-detail'));
+
+    // Pay Next Quota of Loan listener
+    document.getElementById('btn-pay-next-quota').addEventListener('click', async () => {
+        if (!selectedLoanId) return;
+        const loan = state.loans.find(l => l.id === selectedLoanId);
+        if (!loan) return;
+
+        const nextPendingIndex = loan.quotas.findIndex(q => q.status === 'pending');
+        if (nextPendingIndex === -1) return;
+        const quota = loan.quotas[nextPendingIndex];
+
+        const sourceWallet = document.getElementById('loan-pay-source').value;
+        const balance = state.wallets[sourceWallet];
+
+        if (quota.amount > balance) {
+            showToast(`Saldo insuficiente en ${sourceWallet} para pagar la cuota.`, 'error');
+            return;
+        }
+
+        state.wallets[sourceWallet] -= quota.amount;
+        quota.status = 'paid';
+
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'outgoing',
+            title: `Cuota ${quota.number} - Préstamo ${loan.name}`,
+            amount: quota.amount,
+            wallet: sourceWallet === 'Galicia' ? 'Banco Galicia' : sourceWallet,
+            date: 'Hoy • Reciente',
+            category: 'Servicios',
+            isUSD: sourceWallet === 'PayPal'
+        });
+
+        const allPaid = loan.quotas.every(q => q.status === 'paid');
+        const anyPaid = loan.quotas.some(q => q.status === 'paid');
+        if (allPaid) {
+            loan.status = 'PAGADO';
+        } else if (anyPaid) {
+            loan.status = 'PARCIAL';
+        } else {
+            loan.status = 'PENDIENTE';
+        }
+
+        await saveState();
+        renderAll();
+        renderMonthlyBalance();
+        closeModal('modal-loan-detail');
+        showToast(`Pagaste la cuota ${quota.number} de ${loan.name} con éxito.`, 'success');
+    });
 
     // --- Firebase Auth State Listener (Unified Init) ---
     auth.onAuthStateChanged(async (user) => {
         const viewLogin = document.getElementById('view-login');
         const appTabsContainer = document.getElementById('app-tabs-container');
+        const adminBtn = document.getElementById('nav-btn-admin');
+        const mobileAdminBtn = document.getElementById('mobile-nav-btn-admin');
         
         if (user) {
             viewLogin.classList.add('hidden');
             appTabsContainer.classList.remove('hidden');
             
-            // Load state from Firestore
             await loadState(user.uid);
             
-            // Set user labels on drawer
-            document.querySelector('aside .font-bold.truncate').textContent = state.user.name;
+            // Set user role to Admin if their email matches
+            if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+                if (!state.user) state.user = {};
+                if (state.user.role !== 'admin') {
+                    state.user.role = 'admin';
+                    await saveState();
+                }
+            }
+
+            // Hide/Show Admin tab buttons based on role
+            if (state.user && state.user.role === 'admin') {
+                if (adminBtn) adminBtn.classList.remove('hidden');
+                if (mobileAdminBtn) mobileAdminBtn.classList.remove('hidden');
+            } else {
+                if (adminBtn) adminBtn.classList.add('hidden');
+                if (mobileAdminBtn) mobileAdminBtn.classList.add('hidden');
+            }
             
-            // Apply saved theme class to document
+            document.querySelector('aside .font-bold.truncate').textContent = state.user ? state.user.name : "Usuario";
+            
             const html = document.documentElement;
             html.className = state.theme || 'light';
             document.getElementById('theme-icon').textContent = state.theme === 'dark' ? 'dark_mode' : 'light_mode';
@@ -1172,17 +1565,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMonthlyBalance();
             switchTab('dashboard');
         } else {
-            // Reset to defaults
             state = JSON.parse(JSON.stringify(DEFAULT_STATE));
             
             viewLogin.classList.remove('hidden');
             appTabsContainer.classList.add('hidden');
             
-            // Reset submit button state
+            if (adminBtn) adminBtn.classList.add('hidden');
+            if (mobileAdminBtn) mobileAdminBtn.classList.add('hidden');
+            
             btnLoginSubmit.disabled = false;
             btnLoginSubmit.textContent = isRegisterMode ? 'Registrarse' : 'Ingresar de forma segura';
             
-            // Clear input fields
             document.getElementById('login-email').value = '';
             document.getElementById('login-password').value = '';
             if (document.getElementById('register-name')) document.getElementById('register-name').value = '';
