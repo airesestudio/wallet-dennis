@@ -130,8 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasDemoTx = (state.transactions || []).some(tx => tx.id === 1 && tx.title === 'Coto Supermercados');
                 const userEmail = auth.currentUser ? auth.currentUser.email : state.user.email;
                 
-                if ((!isLocal && hasDemoTx) || (userEmail === 'contacto.dennis@gmail.com' && hasDemoTx)) {
-                    console.log('Limpiando datos ficticios antiguos de la nube...');
+                if ((!isLocal && hasDemoTx) || (userEmail === 'contacto.dennis@gmail.com' && hasDemoTx) || (userEmail === 'contacto.dennis@gmail.com' && !state._resetV3)) {
+                    console.log('Reseteando ingresos y transacciones para contacto.dennis@gmail.com...');
                     state = getInitialTemplateState();
                     state.isLoggedIn = true;
                     state.user.name = auth.currentUser ? (auth.currentUser.displayName || "Dennis A.") : "Dennis A.";
@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.user.email = userEmail || "contacto.dennis@gmail.com";
                     state.user.role = 'admin';
                     state.user.avatarUrl = defaultAvatar;
+                    state._resetV3 = true;
                     await db.collection("users").doc(uid).set(state);
                 }
             } else {
