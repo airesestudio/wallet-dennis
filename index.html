@@ -266,12 +266,12 @@
                             </div>
                             
                             <div class="relative z-10 flex gap-md items-end mt-8 pt-4 border-t border-white/10">
-                                <div class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10">
-                                    <p class="text-white/60 font-label-md mb-1">Ingresos Mensuales</p>
+                                <div id="dash-box-income" class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-sm" title="Clic para ver solo Ingresos">
+                                    <p class="text-white/80 font-label-md mb-1 font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-xs text-secondary-fixed">arrow_downward</span> Ingresos Mensuales</p>
                                     <p id="dash-monthly-income" class="text-white font-headline-sm font-tabular-nums">$ 0,00</p>
                                 </div>
-                                <div class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10">
-                                    <p class="text-white/60 font-label-md mb-1">Gastos Estimados</p>
+                                <div id="dash-box-expenses" class="flex-1 bg-white/10 backdrop-blur-md rounded-lg p-sm border border-white/10 cursor-pointer hover:bg-white/20 transition-all shadow-sm" title="Clic para ver solo Gastos">
+                                    <p class="text-white/80 font-label-md mb-1 font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-xs text-error-container">arrow_upward</span> Gastos Estimados</p>
                                     <p id="dash-monthly-expenses" class="text-white font-headline-sm font-tabular-nums">$ 0,00</p>
                                 </div>
                             </div>
@@ -349,10 +349,12 @@
                         <!-- Recent Transactions -->
                         <div class="bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 overflow-hidden">
                             <div class="p-md border-b border-outline-variant/50 flex justify-between items-center">
-                                <h4 class="font-headline-sm text-on-surface">Gastos Recientes</h4>
-                                <button data-tab="accounts" class="text-primary font-label-md hover:underline flex items-center gap-xs card-nav">
-                                    FILTRAR <span class="material-symbols-outlined text-sm">filter_list</span>
-                                </button>
+                                <h4 class="font-headline-sm text-on-surface">Movimientos Recientes</h4>
+                                <div class="flex items-center gap-xs">
+                                    <button id="dash-filter-btn" class="text-primary font-label-md bg-surface-container px-2 py-1 rounded-md hover:bg-surface-container-high transition-colors flex items-center gap-xs">
+                                        <span id="dash-filter-label">Todos</span> <span class="material-symbols-outlined text-sm">filter_list</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="divide-y divide-outline-variant/30" id="dash-recent-transactions">
                                 <!-- Dynamic JS integration -->
@@ -406,7 +408,7 @@
                             <span class="flex items-center gap-1 bg-secondary-container/20 text-secondary-container px-2 py-0.5 rounded-full font-label-md text-label-md">
                                 <span class="material-symbols-outlined text-sm">trending_up</span> +12.4%
                             </span>
-                            <span class="text-on-primary-container/60 font-body-sm text-body-sm">este mes</span>
+                            <span class="text-white/90 font-body-sm text-body-sm font-semibold">este mes</span>
                         </div>
                     </div>
                     <div class="relative z-10 flex gap-xs">
@@ -414,13 +416,66 @@
                             <span class="material-symbols-outlined">add_circle</span>
                             Agregar Fondos
                         </button>
-                        <button id="acc-btn-transfer" class="bg-primary/20 text-white border border-white/20 font-bold px-md py-sm rounded-lg hover:bg-primary/30 transition-all active:scale-95 flex items-center gap-xs">
+                        <button id="acc-btn-transfer" class="bg-white/20 text-white border border-white/40 font-bold px-md py-sm rounded-lg hover:bg-white/30 transition-all active:scale-95 flex items-center gap-xs shadow-sm">
                             <span class="material-symbols-outlined">send</span>
                             Transferir
                         </button>
                     </div>
                 </div>
 
+                <!-- Transaction History & Analysis Bento (MOSTRADO PRIMERO) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-md mb-xl">
+                    <!-- Detailed History List -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] p-md border border-outline-variant/30">
+                        <div class="flex flex-wrap justify-between items-center gap-2 mb-md pb-2 border-b border-outline-variant/30">
+                            <h3 class="font-headline-sm text-headline-sm text-primary">Movimientos Recientes</h3>
+                            <div class="flex flex-wrap items-center gap-1">
+                                <div class="flex bg-surface-container p-0.5 rounded-lg">
+                                    <button id="acc-filter-all" class="px-2.5 py-1 rounded-md bg-white text-primary shadow-sm font-label-md font-bold transition-all">Todos</button>
+                                    <button id="acc-filter-in" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface font-label-md transition-all">Ingresos</button>
+                                    <button id="acc-filter-out" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface font-label-md transition-all">Gastos</button>
+                                </div>
+                                <button id="btn-open-trash" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-error/10 text-error font-label-md hover:bg-error/20 transition-colors ml-1" title="Papelera de Registros Eliminados">
+                                    <span class="material-symbols-outlined text-sm">delete</span> Papelera
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-base" id="acc-transactions-list">
+                            <!-- Dynamic items in JS -->
+                        </div>
+                    </div>
+
+                    <!-- Side Stats Cards -->
+                    <div class="flex flex-col gap-md">
+                        <!-- Investments overview card -->
+                        <div class="bg-primary p-md rounded-xl text-white shadow-lg overflow-hidden relative min-h-[160px] flex flex-col justify-between">
+                            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+                            <div class="relative z-10">
+                                <h4 class="font-headline-sm text-headline-sm mb-xs">Inversiones</h4>
+                                <p class="font-body-sm text-body-sm text-primary-fixed-dim mb-md">Tu capital está creciendo a un ritmo constante.</p>
+                            </div>
+                            <div class="relative z-10 p-sm bg-white/10 rounded-lg backdrop-blur-sm">
+                                <div class="flex justify-between items-center mb-base">
+                                    <span class="font-label-md text-label-md">Rendimiento anual</span>
+                                    <span class="font-label-md text-label-md text-secondary-fixed font-bold">+38.5%</span>
+                                </div>
+                                <div class="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                                    <div class="h-full bg-secondary-fixed w-[70%]"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expenses breakdown widget -->
+                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30">
+                            <h4 class="font-label-md text-label-md text-outline uppercase tracking-wider mb-md">Gastos por Categoría</h4>
+                            <div class="space-y-sm" id="acc-categories-stats">
+                                <!-- Filled by JS calculations -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="font-headline-sm text-headline-sm text-on-surface mb-md">Mis Billeteras y Cuentas</h3>
                 <!-- Wallets Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md mb-xl" id="wallets-grid">
                     <!-- MercadoPago -->
@@ -529,49 +584,6 @@
                             <span class="material-symbols-outlined text-primary text-[32px]">add</span>
                         </div>
                         <p class="font-body-md text-body-md font-bold text-primary">Vincular nueva cuenta</p>
-                    </div>
-                </div>
-
-                <!-- Transaction History & Analysis Bento -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-md">
-                    <!-- Detailed History List -->
-                    <div class="lg:col-span-2 bg-white rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] p-md border border-outline-variant/30">
-                        <div class="flex justify-between items-center mb-md">
-                            <h3 class="font-headline-sm text-headline-sm text-primary">Movimientos Recientes</h3>
-                            <button id="btn-clear-history" class="text-primary font-bold font-label-md text-label-md hover:underline">Limpiar Historial</button>
-                        </div>
-                        <div class="space-y-base" id="acc-transactions-list">
-                            <!-- Dynamic items in JS -->
-                        </div>
-                    </div>
-
-                    <!-- Side Stats Cards -->
-                    <div class="flex flex-col gap-md">
-                        <!-- Investments overview card -->
-                        <div class="bg-primary p-md rounded-xl text-white shadow-lg overflow-hidden relative min-h-[160px] flex flex-col justify-between">
-                            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-                            <div class="relative z-10">
-                                <h4 class="font-headline-sm text-headline-sm mb-xs">Inversiones</h4>
-                                <p class="font-body-sm text-body-sm text-primary-fixed-dim mb-md">Tu capital está creciendo a un ritmo constante.</p>
-                            </div>
-                            <div class="relative z-10 p-sm bg-white/10 rounded-lg backdrop-blur-sm">
-                                <div class="flex justify-between items-center mb-base">
-                                    <span class="font-label-md text-label-md">Rendimiento anual</span>
-                                    <span class="font-label-md text-label-md text-secondary-fixed font-bold">+38.5%</span>
-                                </div>
-                                <div class="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                                    <div class="h-full bg-secondary-fixed w-[70%]"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Expenses breakdown widget -->
-                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30">
-                            <h4 class="font-label-md text-label-md text-outline uppercase tracking-wider mb-md">Gastos por Categoría</h4>
-                            <div class="space-y-sm" id="acc-categories-stats">
-                                <!-- Filled by JS calculations -->
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1534,6 +1546,31 @@
                     Guardar Vencimiento
                 </button>
             </form>
+        </div>
+    <!-- Modal Papelera de Reciclaje -->
+    <div id="modal-trash" class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-xl max-h-[85vh] flex flex-col relative">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" onclick="closeModal('modal-trash')">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="flex items-center gap-sm mb-md pb-sm border-b border-outline-variant/30">
+                <div class="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center text-error">
+                    <span class="material-symbols-outlined">delete</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-on-surface">Papelera de Reciclaje</h2>
+                    <p class="text-xs text-on-surface-variant">Los registros eliminados se guardan aquí de forma segura para que puedas restaurarlos.</p>
+                </div>
+            </div>
+            <div class="overflow-y-auto flex-1 space-y-sm pr-1" id="trash-list-container">
+                <!-- Dinámico desde JS -->
+            </div>
+            <div class="mt-md pt-sm border-t border-outline-variant/30 flex justify-end gap-sm">
+                <button type="button" onclick="closeModal('modal-trash')" class="px-md py-sm rounded-lg font-bold text-on-surface-variant hover:bg-surface-container">Cerrar</button>
+                <button type="button" id="btn-empty-trash" class="bg-error text-white font-bold px-md py-sm rounded-lg hover:bg-error/90 transition-all shadow-md flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">delete_forever</span> Vaciar Papelera
+                </button>
+            </div>
         </div>
     </div>
 

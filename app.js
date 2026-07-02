@@ -66,6 +66,7 @@ const DEFAULT_STATE_DEMO = {
         { id: 1, title: 'Reserva de Emergencia', current: 15300, target: 18000, color: 'bg-secondary' },
         { id: 2, title: 'Viaje a Bariloche', current: 4200, target: 10000, color: 'bg-primary' }
     ],
+    trash: [],
     webhookUrl: 'https://dennis.wallet.com/webhooks',
     theme: 'light',
     monthlyBudget: 0
@@ -92,6 +93,7 @@ const DEFAULT_STATE_PRODUCTION = {
     bills: [],
     loans: [],
     savingsGoals: [],
+    trash: [],
     webhookUrl: '',
     theme: 'light',
     monthlyBudget: 0
@@ -150,6 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.user.avatarUrl = defaultAvatar;
                 await db.collection("users").doc(uid).set(state);
             }
+            if (!state.trash) state.trash = [];
+            if (!state.savingsGoals) state.savingsGoals = [];
         } catch (e) {
             console.error("Error reading Firestore:", e);
         }
@@ -257,77 +261,113 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. Render Transactions
+    // 2. Render Transactions (con filtrado y botón papelera)
+    let currentHistoryFilter = 'all';
+    let currentDashFilter = 'all';
     function renderTransactions() {
         const dashContainer = document.getElementById('dash-recent-transactions');
         const accContainer = document.getElementById('acc-transactions-list');
 
-        dashContainer.innerHTML = '';
-        accContainer.innerHTML = '';
+        if (dashContainer) dashContainer.innerHTML = '';
+        if (accContainer) accContainer.innerHTML = '';
 
-        if (state.transactions.length === 0) {
+        if (!state.transactions || state.transactions.length === 0) {
             const emptyState = `<p class="p-md text-center text-on-surface-variant font-body-sm">No hay transacciones registradas.</p>`;
-            dashContainer.innerHTML = emptyState;
-            accContainer.innerHTML = emptyState;
+            if (dashContainer) dashContainer.innerHTML = emptyState;
+            if (accContainer) accContainer.innerHTML = emptyState;
             return;
         }
 
-        // Render Dashboard (limit to first 3)
-        state.transactions.slice(0, 3).forEach(tx => {
-            const isIncoming = tx.type === 'incoming';
-            const icon = tx.category === 'Alimentación' ? 'shopping_cart' : (tx.category === 'Servicios' ? 'receipt' : (tx.category === 'Ocio' ? 'directions_car' : 'work'));
-            const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container';
+        // Render Dashboard (según currentDashFilter, limit to 4)
+        const dashTxs = state.transactions.filter(tx => currentDashFilter === 'all' || tx.type === currentDashFilter);
+        if (dashTxs.length === 0 && dashContainer) {
+            dashContainer.innerHTML = `<p class="p-md text-center text-on-surface-variant font-body-sm">No hay transacciones para este filtro.</p>`;
+        } else if (dashContainer) {
+            dashTxs.slice(0, 4).forEach(tx => {
+                const isIncoming = tx.type === 'incoming';
+                const icon = tx.category === 'Alimentación' ? 'shopping_cart' : (tx.category === 'Servicios' ? 'receipt' : (tx.category === 'Ocio' ? 'directions_car' : 'work'));
+                const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container';
 
-            const item = document.createElement('div');
-            item.className = 'p-md flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer group';
-            item.innerHTML = `
-                <div class="flex items-center gap-md">
-                    <div class="w-10 h-10 rounded-full ${colorClass} flex items-center justify-center relative overflow-hidden">
-                        <span class="material-symbols-outlined">${icon}</span>
-                    </div>
-                    <div>
-                        <p class="font-body-md text-on-surface font-bold">${tx.title}</p>
-                        <div class="flex items-center gap-xs">
-                            <p class="font-body-sm text-on-surface-variant">${tx.date}</p>
-                            <span class="w-1 h-1 rounded-full bg-outline"></span>
-                            <p class="font-body-sm text-on-surface-variant">${tx.wallet}</p>
+                const item = document.createElement('div');
+                item.className = 'p-md flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer group';
+                item.innerHTML = `
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-full ${colorClass} flex items-center justify-center relative overflow-hidden">
+                            <span class="material-symbols-outlined">${icon}</span>
+                        </div>
+                        <div>
+                            <p class="font-body-md text-on-surface font-bold">${tx.title}</p>
+                            <div class="flex items-center gap-xs">
+                                <p class="font-body-sm text-on-surface-variant">${tx.date}</p>
+                                <span class="w-1 h-1 rounded-full bg-outline"></span>
+                                <p class="font-body-sm text-on-surface-variant">${tx.wallet}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <p class="font-tabular-nums ${isIncoming ? 'text-secondary' : 'text-tertiary-container'} font-bold">
-                    ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
-                </p>
-            `;
-            dashContainer.appendChild(item);
-        });
-
-        // Render Accounts tab (all transactions)
-        state.transactions.forEach(tx => {
-            const isIncoming = tx.type === 'incoming';
-            const icon = tx.category === 'Alimentación' ? 'shopping_bag' : (tx.category === 'Servicios' ? 'cloud_done' : (tx.category === 'Ocio' ? 'restaurant' : 'payments'));
-            const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container-high';
-
-            const item = document.createElement('div');
-            item.className = 'flex items-center justify-between p-sm hover:bg-surface-container-low rounded-lg transition-colors group';
-            item.innerHTML = `
-                <div class="flex items-center gap-md">
-                    <div class="w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:bg-white transition-colors">
-                        <span class="material-symbols-outlined">${icon}</span>
-                    </div>
-                    <div>
-                        <p class="font-body-md text-body-md font-bold text-on-surface">${tx.title}</p>
-                        <p class="font-body-sm text-body-sm text-on-surface-variant">${tx.date} • ${tx.wallet}</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="font-body-md text-body-md font-bold ${isIncoming ? 'text-secondary' : 'text-error'} font-tabular-nums">
+                    <p class="font-tabular-nums ${isIncoming ? 'text-secondary' : 'text-tertiary-container'} font-bold">
                         ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
                     </p>
-                    <p class="font-label-md text-label-md text-outline uppercase tracking-wider">${tx.category}</p>
-                </div>
-            `;
-            accContainer.appendChild(item);
-        });
+                `;
+                dashContainer.appendChild(item);
+            });
+        }
+
+        // Render Accounts tab (Movimientos Recientes según currentHistoryFilter)
+        const accTxs = state.transactions.filter(tx => currentHistoryFilter === 'all' || tx.type === currentHistoryFilter);
+        if (accTxs.length === 0 && accContainer) {
+            accContainer.innerHTML = `<p class="p-md text-center text-on-surface-variant font-body-sm">No hay transacciones para el filtro seleccionado.</p>`;
+        } else if (accContainer) {
+            accTxs.forEach((tx) => {
+                const isIncoming = tx.type === 'incoming';
+                const icon = tx.category === 'Alimentación' ? 'shopping_bag' : (tx.category === 'Servicios' ? 'cloud_done' : (tx.category === 'Ocio' ? 'restaurant' : 'payments'));
+                const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container-high';
+
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-sm hover:bg-surface-container-low rounded-lg transition-colors group';
+                item.innerHTML = `
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:bg-white transition-colors">
+                            <span class="material-symbols-outlined">${icon}</span>
+                        </div>
+                        <div>
+                            <p class="font-body-md text-body-md font-bold text-on-surface">${tx.title}</p>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">${tx.date} • ${tx.wallet}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="font-body-md text-body-md font-bold ${isIncoming ? 'text-secondary' : 'text-error'} font-tabular-nums">
+                                ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
+                            </p>
+                            <p class="font-label-md text-label-md text-outline uppercase tracking-wider">${tx.category}</p>
+                        </div>
+                        <button type="button" class="btn-delete-tx opacity-0 group-hover:opacity-100 p-1 text-on-surface-variant hover:text-error transition-all" data-id="${tx.id}" title="Eliminar a Papelera">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+                `;
+                accContainer.appendChild(item);
+            });
+
+            // Conectar eliminación de transacciones a Papelera
+            accContainer.querySelectorAll('.btn-delete-tx').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const txId = btn.getAttribute('data-id');
+                    const idx = state.transactions.findIndex(t => String(t.id) === String(txId));
+                    if (idx !== -1) {
+                        const removed = state.transactions[idx];
+                        if (confirm(`⚠️ ¿Deseas mover el registro "${removed.title}" a la Papelera de Reciclaje?`)) {
+                            moveToTrash(removed, 'transaccion');
+                            state.transactions.splice(idx, 1);
+                            saveState().catch(e => console.warn('Firestore sync error:', e));
+                            renderAll();
+                            showToast(`"${removed.title}" enviado a la papelera.`, 'info');
+                        }
+                    }
+                };
+            });
+        }
     }
 
     // 2.b. Render Module Transactions (Pestaña Movimientos: Gastos, Pagos, Fondos)
@@ -632,10 +672,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bill = state.bills.find(b => b.id === billId);
                 if (!bill) return;
                 if (confirm(`⚠️ Aviso de Seguridad:\n¿Estás seguro de eliminar el vencimiento "${bill.name}" por ${formatMoney(bill.amount)}?`)) {
+                    moveToTrash(bill, 'vencimiento');
                     state.bills = state.bills.filter(b => b.id !== billId);
                     saveState().catch(e => console.warn('Firestore sync error:', e));
                     renderAll();
-                    showToast(`Vencimiento "${bill.name}" eliminado.`, 'info');
+                    showToast(`Vencimiento "${bill.name}" enviado a la papelera.`, 'info');
                 }
             });
         });
@@ -1532,15 +1573,157 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-add').addEventListener('click', () => closeModal('modal-add'));
     document.getElementById('btn-close-pay-bill').addEventListener('click', () => closeModal('modal-pay-bill'));
 
-    // Clear history in Accounts tab
-    document.getElementById('btn-clear-history').addEventListener('click', async () => {
-        state.transactions = [];
+    // --- Sistema de Papelera de Reciclaje ---
+    function moveToTrash(item, type) {
+        if (!state.trash) state.trash = [];
+        state.trash.unshift({
+            id: item.id || Date.now() + Math.random(),
+            type: type, // 'transaccion', 'vencimiento', 'prestamo'
+            title: item.title || item.name || 'Registro',
+            amount: item.amount || 0,
+            isUSD: !!item.isUSD,
+            category: item.category || 'Varios',
+            date: item.date || new Date().toLocaleDateString('es-AR'),
+            deletedAt: new Date().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            originalData: item
+        });
         saveState().catch(e => console.warn('Firestore sync error:', e));
+    }
+
+    function renderTrash() {
+        const container = document.getElementById('trash-list-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (!state.trash || state.trash.length === 0) {
+            container.innerHTML = `<div class="py-8 text-center"><span class="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">delete_outline</span><p class="font-body-sm text-on-surface-variant">La papelera está vacía.</p></div>`;
+            return;
+        }
+        state.trash.forEach((trashBtnItem, idx) => {
+            const badgeColor = trashBtnItem.type === 'transaccion' ? 'bg-primary/10 text-primary' : (trashBtnItem.type === 'vencimiento' ? 'bg-error/10 text-error' : 'bg-secondary/10 text-secondary');
+            container.innerHTML += `
+                <div class="p-sm bg-surface-container-low rounded-xl flex items-center justify-between gap-2 border border-outline-variant/30">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeColor}">${trashBtnItem.type}</span>
+                        <div>
+                            <p class="font-bold text-on-surface text-sm">${trashBtnItem.title}</p>
+                            <p class="text-xs text-on-surface-variant">${formatMoney(trashBtnItem.amount, trashBtnItem.isUSD)} • Eliminado: ${trashBtnItem.deletedAt}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="restoreFromTrash(${idx})" class="px-2.5 py-1 bg-secondary text-white rounded-lg text-xs font-bold hover:bg-secondary/90 transition-colors flex items-center gap-1 shadow-sm" title="Restaurar registro">
+                            <span class="material-symbols-outlined text-xs">restore_from_trash</span> Restaurar
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    window.restoreFromTrash = async (idx) => {
+        if (!state.trash || !state.trash[idx]) return;
+        const item = state.trash[idx];
+        if (item.type === 'transaccion') {
+            if (!state.transactions) state.transactions = [];
+            state.transactions.unshift(item.originalData);
+        } else if (item.type === 'vencimiento') {
+            if (!state.bills) state.bills = [];
+            state.bills.push(item.originalData);
+        } else if (item.type === 'prestamo') {
+            if (!state.loans) state.loans = [];
+            state.loans.push(item.originalData);
+        }
+        state.trash.splice(idx, 1);
+        saveState().catch(e => console.warn('Firestore sync error:', e));
+        renderAll();
+        renderTrash();
+        showToast(`"${item.title}" restaurado exitosamente.`, 'success');
+    };
+
+    const btnOpenTrash = document.getElementById('btn-open-trash');
+    if (btnOpenTrash) {
+        btnOpenTrash.addEventListener('click', () => {
+            renderTrash();
+            openModal('modal-trash');
+        });
+    }
+
+    const btnEmptyTrash = document.getElementById('btn-empty-trash');
+    if (btnEmptyTrash) {
+        btnEmptyTrash.addEventListener('click', () => {
+            if (!state.trash || state.trash.length === 0) {
+                showToast('La papelera ya está vacía.', 'info');
+                return;
+            }
+            if (confirm('⚠️ ¿Estás seguro de vaciar la papelera de reciclaje permanentemente?')) {
+                state.trash = [];
+                saveState().catch(e => console.warn('Firestore sync error:', e));
+                renderTrash();
+                showToast('Papelera vaciada completamente.', 'info');
+            }
+        });
+    }
+
+    // --- Filtros de Historial en Mi Billetera ---
+    function updateHistoryFilterUI(filter) {
+        currentHistoryFilter = filter;
+        const btnAll = document.getElementById('acc-filter-all');
+        const btnIn = document.getElementById('acc-filter-in');
+        const btnOut = document.getElementById('acc-filter-out');
+        const activeClass = 'px-2.5 py-1 rounded-md bg-white text-primary shadow-sm font-label-md font-bold transition-all';
+        const inactiveClass = 'px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface font-label-md transition-all';
+
+        if (btnAll) btnAll.className = filter === 'all' ? activeClass : inactiveClass;
+        if (btnIn) btnIn.className = filter === 'incoming' ? activeClass : inactiveClass;
+        if (btnOut) btnOut.className = filter === 'outgoing' ? activeClass : inactiveClass;
         renderTransactions();
-        renderAnalyticsBreakdown();
-        renderMonthlyBalance();
-        showToast('Historial vaciado.', 'info');
-    });
+    }
+
+    const btnFilterAll = document.getElementById('acc-filter-all');
+    const btnFilterIn = document.getElementById('acc-filter-in');
+    const btnFilterOut = document.getElementById('acc-filter-out');
+    if (btnFilterAll) btnFilterAll.addEventListener('click', () => updateHistoryFilterUI('all'));
+    if (btnFilterIn) btnFilterIn.addEventListener('click', () => updateHistoryFilterUI('incoming'));
+    if (btnFilterOut) btnFilterOut.addEventListener('click', () => updateHistoryFilterUI('outgoing'));
+
+    // --- Navegación interactiva desde displays de Ingresos/Gastos ---
+    const dashBoxIncome = document.getElementById('dash-box-income');
+    const dashBoxExpenses = document.getElementById('dash-box-expenses');
+    if (dashBoxIncome) {
+        dashBoxIncome.style.cursor = 'pointer';
+        dashBoxIncome.title = 'Ver historial de Ingresos';
+        dashBoxIncome.addEventListener('click', () => {
+            switchTab('accounts');
+            updateHistoryFilterUI('incoming');
+            showToast('Mostrando historial filtrado por Ingresos', 'info');
+        });
+    }
+    if (dashBoxExpenses) {
+        dashBoxExpenses.style.cursor = 'pointer';
+        dashBoxExpenses.title = 'Ver historial de Gastos';
+        dashBoxExpenses.addEventListener('click', () => {
+            switchTab('accounts');
+            updateHistoryFilterUI('outgoing');
+            showToast('Mostrando historial filtrado por Gastos', 'info');
+        });
+    }
+
+    // --- Filtro del Dashboard ---
+    const dashFilterBtn = document.getElementById('dash-filter-btn');
+    if (dashFilterBtn) {
+        dashFilterBtn.addEventListener('click', () => {
+            if (currentDashFilter === 'all') {
+                currentDashFilter = 'incoming';
+                dashFilterBtn.textContent = 'Filtro: Ingresos';
+            } else if (currentDashFilter === 'incoming') {
+                currentDashFilter = 'outgoing';
+                dashFilterBtn.textContent = 'Filtro: Gastos';
+            } else {
+                currentDashFilter = 'all';
+                dashFilterBtn.textContent = 'Filtro: Todos';
+            }
+            renderTransactions();
+        });
+    }
 
     // Budget Save Handler
     document.getElementById('btn-save-budget').addEventListener('click', async () => {
@@ -2161,13 +2344,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const loan = state.loans.find(l => l.id === selectedLoanId);
         if (!loan) return;
 
-        if (confirm(`⚠️ Aviso de Seguridad:\n¿Estás seguro de que deseas eliminar el préstamo "${loan.name}"?\nEsta acción borrará este préstamo y su cronograma de forma permanente.`)) {
+        if (confirm(`⚠️ Aviso de Seguridad:\n¿Estás seguro de que deseas eliminar el préstamo "${loan.name}"?\nEsta acción enviará el préstamo y su cronograma a la Papelera de Reciclaje.`)) {
+            moveToTrash(loan, 'prestamo');
             state.loans = state.loans.filter(l => l.id !== selectedLoanId);
             saveState().catch(e => console.warn('Firestore sync error:', e));
             renderAll();
             renderMonthlyBalance();
             closeModal('modal-loan-detail');
-            showToast(`Préstamo "${loan.name}" eliminado correctamente.`, 'info');
+            showToast(`Préstamo "${loan.name}" enviado a la papelera.`, 'info');
         }
     });
 
