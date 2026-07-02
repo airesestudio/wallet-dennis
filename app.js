@@ -879,10 +879,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Toast System ---
+    let toastTimeout = null;
     function showToast(text, type = 'success') {
         const toast = document.getElementById('toast');
         const toastText = document.getElementById('toast-text');
         const toastIcon = document.getElementById('toast-icon');
+        if (!toast) return;
+
+        if (toastTimeout) clearTimeout(toastTimeout);
 
         toastText.textContent = text;
         if (type === 'success') {
@@ -896,13 +900,30 @@ document.addEventListener('DOMContentLoaded', () => {
             toastIcon.className = 'material-symbols-outlined text-primary';
         }
 
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0px)';
         toast.classList.remove('translate-y-24', 'opacity-0');
+        
         if (window.Motion) {
-            Motion.animate(toast, { opacity: [0, 1], y: [50, 0] }, { duration: 0.3 });
+            Motion.animate(toast, { opacity: [0, 1], y: [40, 0] }, { duration: 0.25 });
         }
-        setTimeout(() => {
-            toast.classList.add('translate-y-24', 'opacity-0');
-        }, 3500);
+
+        const hideToast = () => {
+            if (window.Motion) {
+                Motion.animate(toast, { opacity: [1, 0], y: [0, 40] }, { duration: 0.25 }).finished.then(() => {
+                    toast.classList.add('translate-y-24', 'opacity-0');
+                    toast.style.opacity = '';
+                    toast.style.transform = '';
+                });
+            } else {
+                toast.classList.add('translate-y-24', 'opacity-0');
+                toast.style.opacity = '';
+                toast.style.transform = '';
+            }
+        };
+
+        toast.onclick = hideToast;
+        toastTimeout = setTimeout(hideToast, 3500);
     }
 
     // --- Modal Controls (Framer Motion spring effect) ---
