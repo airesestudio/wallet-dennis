@@ -62,6 +62,10 @@ const DEFAULT_STATE_DEMO = {
         { id: 'loan-1', type: 'receivable', name: 'Juan Pérez', amount: 15000.00, desc: 'Vence en 2 días', status: 'PENDIENTE' },
         { id: 'loan-2', type: 'payable', name: 'María García', amount: 8200.00, desc: 'Vence en 5 días', status: 'PARCIAL' }
     ],
+    savingsGoals: [
+        { id: 1, title: 'Reserva de Emergencia', current: 15300, target: 18000, color: 'bg-secondary' },
+        { id: 2, title: 'Viaje a Bariloche', current: 4200, target: 10000, color: 'bg-primary' }
+    ],
     webhookUrl: 'https://dennis.wallet.com/webhooks',
     theme: 'light',
     monthlyBudget: 0
@@ -87,6 +91,7 @@ const DEFAULT_STATE_PRODUCTION = {
     transactions: [],
     bills: [],
     loans: [],
+    savingsGoals: [],
     webhookUrl: '',
     theme: 'light',
     monthlyBudget: 0
@@ -210,6 +215,46 @@ document.addEventListener('DOMContentLoaded', () => {
             mpStatus.textContent = 'Activa';
             mpStatus.className = 'px-xs py-base bg-secondary-container/20 text-on-secondary-container rounded-full font-label-md text-label-md';
         }
+
+        // Cálculo dinámico de Ingresos Mensuales y Gastos Estimados según transacciones y estado reseteado:
+        let monthlyIncome = 0;
+        let monthlyExpenses = 0;
+        (state.transactions || []).forEach(tx => {
+            const amount = tx.isUSD ? tx.amount * state.exchangeRate : tx.amount;
+            if (tx.type === 'incoming') monthlyIncome += amount;
+            else if (tx.type === 'outgoing') monthlyExpenses += amount;
+        });
+        const incomeEl = document.getElementById('dash-monthly-income');
+        const expEl = document.getElementById('dash-monthly-expenses');
+        if (incomeEl) incomeEl.textContent = formatMoney(monthlyIncome);
+        if (expEl) expEl.textContent = formatMoney(monthlyExpenses);
+
+        renderSavingsGoals();
+    }
+
+    function renderSavingsGoals() {
+        const container = document.getElementById('dash-savings-goals-list');
+        if (!container) return;
+        container.innerHTML = '';
+        const goals = state.savingsGoals || [];
+        if (goals.length === 0) {
+            container.innerHTML = `<p class="text-xs text-on-surface-variant text-center py-4 italic">No hay objetivos activos. Tu cuenta está en $0,00.</p>`;
+            return;
+        }
+        goals.forEach(goal => {
+            const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+            container.innerHTML += `
+                <div>
+                    <div class="flex justify-between font-label-md mb-xs">
+                        <span class="text-on-surface font-bold">${goal.title}</span>
+                        <span class="text-on-surface-variant">${pct}% — ${formatMoney(goal.current)} / ${formatMoney(goal.target)}</span>
+                    </div>
+                    <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                        <div class="h-full ${goal.color || 'bg-primary'} w-[${pct}%] transition-all duration-1000" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+            `;
+        });
     }
 
     // 2. Render Transactions
