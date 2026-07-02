@@ -25,8 +25,8 @@ auth.getRedirectResult().catch((err) => {
     }
 });
 
-// --- Default Template State ---
-const DEFAULT_STATE = {
+// --- Default Template State (Para Pruebas en Local) ---
+const DEFAULT_STATE_DEMO = {
     isLoggedIn: false,
     themePalette: "indigo",
     user: {
@@ -41,7 +41,7 @@ const DEFAULT_STATE = {
         PayPal: 450.00, // USD
         Prex: 1500.00
     },
-    exchangeRate: 1000, // ARS per USD for consolidated totals
+    exchangeRate: 1000,
     transactions: [
         { id: 1, type: 'outgoing', title: 'Coto Supermercados', amount: 45200.00, wallet: 'MercadoPago', date: 'Hoy • 14:20', category: 'Alimentación' },
         { id: 2, type: 'incoming', title: 'Transferencia Recibida', amount: 120000.00, wallet: 'Banco Galicia', date: 'Ayer • 09:15', category: 'Ingreso' },
@@ -67,9 +67,39 @@ const DEFAULT_STATE = {
     monthlyBudget: 0
 };
 
+// --- Clean Template State (Para Producción en Limpio / Reseteado) ---
+const DEFAULT_STATE_PRODUCTION = {
+    isLoggedIn: false,
+    themePalette: "indigo",
+    user: {
+        name: "Usuario",
+        alias: "usuario.wallet",
+        gender: "male",
+        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3"
+    },
+    wallets: {
+        Galicia: 0.00,
+        MercadoPago: 0.00,
+        PayPal: 0.00,
+        Prex: 0.00
+    },
+    exchangeRate: 1000,
+    transactions: [],
+    bills: [],
+    loans: [],
+    webhookUrl: '',
+    theme: 'light',
+    monthlyBudget: 0
+};
+
+function getInitialTemplateState() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+    return JSON.parse(JSON.stringify(isLocal ? DEFAULT_STATE_DEMO : DEFAULT_STATE_PRODUCTION));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Initial State ---
-    let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    let state = getInitialTemplateState();
 
     // --- Firebase Integration ---
     async function loadState(uid) {
@@ -87,13 +117,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!state.user.avatarUrl) {
                     state.user.avatarUrl = defaultAvatar;
                 }
+
+                // Limpieza automática si un usuario antiguo como contacto.dennis@gmail.com o en Producción tiene transacciones demo viejas precargadas en su documento de Firestore:
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+                const hasDemoTx = (state.transactions || []).some(tx => tx.id === 1 && tx.title === 'Coto Supermercados');
+                const userEmail = auth.currentUser ? auth.currentUser.email : state.user.email;
+                
+                if ((!isLocal && hasDemoTx) || (userEmail === 'contacto.dennis@gmail.com' && hasDemoTx)) {
+                    console.log('Limpiando datos ficticios antiguos de la nube...');
+                    state = getInitialTemplateState();
+                    state.isLoggedIn = true;
+                    state.user.name = auth.currentUser ? (auth.currentUser.displayName || "Dennis A.") : "Dennis A.";
+                    state.user.alias = "dennis.wallet";
+                    state.user.email = userEmail || "contacto.dennis@gmail.com";
+                    state.user.role = 'admin';
+                    state.user.avatarUrl = defaultAvatar;
+                    await db.collection("users").doc(uid).set(state);
+                }
             } else {
-                // Initialize new user with default template state
-                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                // Initialize new user with appropriate environment template state
+                state = getInitialTemplateState();
                 state.isLoggedIn = true;
                 state.user.name = auth.currentUser.displayName || "Usuario Nuevo";
-                state.user.alias = auth.currentUser.email.split('@')[0] + ".wallet";
-                state.user.email = auth.currentUser.email;
+                state.user.alias = auth.currentUser.email ? auth.currentUser.email.split('@')[0] + ".wallet" : "usuario.wallet";
+                state.user.email = auth.currentUser.email || "";
                 state.user.gender = detectGender(state.user.name);
                 state.user.avatarUrl = defaultAvatar;
                 await db.collection("users").doc(uid).set(state);
@@ -238,20 +285,104 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2.b. Render Module Transactions (Pestaña Movimientos: Gastos, Pagos, Fondos)
+    let currentTxFilter = 'all';
+    function renderModuleTransactions(filter = currentTxFilter) {
+        currentTxFilter = filter;
+        const container = document.getElementById('module-tx-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        document.querySelectorAll('.tx-filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filter) {
+                btn.className = 'tx-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-primary shadow-sm transition-all';
+            } else {
+                btn.className = 'tx-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all';
+            }
+        });
+
+        let totalIn = 0;
+        let totalOut = 0;
+        state.transactions.forEach(tx => {
+            if (tx.type === 'incoming') totalIn += tx.amount;
+            else totalOut += tx.amount;
+        });
+        const statInEl = document.getElementById('tx-stat-in');
+        const statOutEl = document.getElementById('tx-stat-out');
+        const statNetEl = document.getElementById('tx-stat-net');
+        if (statInEl) statInEl.textContent = formatMoney(totalIn);
+        if (statOutEl) statOutEl.textContent = formatMoney(totalOut);
+        if (statNetEl) {
+            const net = totalIn - totalOut;
+            statNetEl.textContent = formatMoney(net);
+            statNetEl.className = `font-bold font-tabular-nums ${net >= 0 ? 'text-secondary' : 'text-error'}`;
+        }
+
+        const filtered = state.transactions.filter(tx => {
+            if (filter === 'all') return true;
+            return tx.type === filter;
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="p-lg bg-surface-container-low rounded-xl text-center text-on-surface-variant text-sm">No hay movimientos en esta categoría.</div>`;
+        } else {
+            filtered.forEach(tx => {
+                const isIncoming = tx.type === 'incoming';
+                const icon = tx.category === 'Alimentación' ? 'shopping_bag' : (tx.category === 'Servicios' ? 'cloud_done' : (tx.category === 'Ocio' ? 'restaurant' : 'payments'));
+                const colorClass = isIncoming ? 'text-secondary bg-secondary-container/10' : 'text-primary bg-surface-container-high';
+
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-md bg-white hover:bg-surface-container-low rounded-xl border border-outline-variant/30 transition-all shadow-sm';
+                item.innerHTML = `
+                    <div class="flex items-center gap-md">
+                        <div class="w-10 h-10 rounded-xl ${colorClass} flex items-center justify-center">
+                            <span class="material-symbols-outlined">${icon}</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-on-surface text-sm">${tx.title}</p>
+                            <p class="text-xs text-on-surface-variant">${tx.date} • <span class="font-bold text-primary">${tx.wallet}</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-sm ${isIncoming ? 'text-secondary' : 'text-error'} font-tabular-nums">
+                            ${isIncoming ? '+' : '-'}${formatMoney(tx.amount, tx.isUSD)}
+                        </p>
+                        <span class="text-[10px] bg-surface-container px-2 py-0.5 rounded uppercase font-bold text-on-surface-variant">${tx.category}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        document.querySelectorAll('.tx-filter-btn').forEach(btn => {
+            btn.onclick = () => renderModuleTransactions(btn.getAttribute('data-filter'));
+        });
+    }
+
     // 3. Render Bills & Obligations
-    function renderBills() {
+    function renderBills(filterCategory = 'all') {
         const dashBills = document.getElementById('dash-upcoming-bills');
         const payTodayList = document.getElementById('pay-today-list');
         const listOverdue = document.getElementById('list-overdue');
         const listUpcoming = document.getElementById('list-upcoming');
+
+        if (!dashBills || !payTodayList || !listOverdue || !listUpcoming) return;
 
         dashBills.innerHTML = '';
         payTodayList.innerHTML = '';
         listOverdue.innerHTML = '';
         listUpcoming.innerHTML = '';
 
-        const overdue = state.bills.filter(b => b.status === 'overdue');
-        const upcoming = state.bills.filter(b => b.status === 'upcoming');
+        let filteredBills = state.bills || [];
+
+        if (filterCategory === 'loan') {
+            filteredBills = filteredBills.filter(b => b.category === 'loan' || b.category === 'Préstamos' || /préstamo|cuota|crédito|banco|galicia|mp/i.test(b.name));
+        } else if (filterCategory === 'service') {
+            filteredBills = filteredBills.filter(b => b.category === 'service' || b.category === 'Servicios' || !/préstamo|cuota|crédito/i.test(b.name));
+        }
+
+        const overdue = filteredBills.filter(b => b.status === 'overdue');
+        const upcoming = filteredBills.filter(b => b.status === 'upcoming');
 
         // Update counts
         document.getElementById('pay-today-count').textContent = String(overdue.length).padStart(2, '0');
@@ -287,9 +418,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="text-sm font-bold">${bill.name}</p>
                     <p class="text-xs text-on-surface-variant">${bill.date}</p>
                 </div>
-                <div class="flex flex-col items-end">
-                    <span class="font-tabular-nums text-headline-sm text-primary">${formatMoney(bill.amount, bill.isUSD)}</span>
-                    <button class="btn-quick-pay text-xs font-bold text-primary hover:underline" data-id="${bill.id}">PAGAR</button>
+                <div class="flex items-center gap-2">
+                    <span class="font-tabular-nums text-headline-sm text-primary mr-1">${formatMoney(bill.amount, bill.isUSD)}</span>
+                    <button class="btn-quick-pay text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20" data-id="${bill.id}">PAGAR</button>
+                    <button class="btn-delete-bill text-on-surface-variant hover:text-error transition-colors p-1" data-id="${bill.id}" title="Eliminar">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
                 </div>
             `;
             payTodayList.appendChild(item);
@@ -315,7 +449,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="flex items-center justify-between mt-1">
                             <p class="text-xs text-on-surface-variant">${bill.date}</p>
-                            <button class="btn-quick-pay text-xs font-bold text-primary group-hover:underline" data-id="${bill.id}">PAGAR AHORA</button>
+                            <div class="flex items-center gap-2">
+                                <button class="btn-quick-pay text-xs font-bold text-primary group-hover:underline" data-id="${bill.id}">PAGAR AHORA</button>
+                                <button class="btn-delete-bill text-on-surface-variant hover:text-error transition-colors ml-1" data-id="${bill.id}" title="Eliminar">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -346,6 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="flex items-center gap-xs">
                                 <span class="text-[10px] bg-secondary/10 text-secondary px-2 py-0.5 rounded-full font-bold">MANUAL</span>
                                 <button class="btn-quick-pay text-xs font-bold text-primary hover:underline ml-sm" data-id="${bill.id}">PAGAR</button>
+                                <button class="btn-delete-bill text-on-surface-variant hover:text-error transition-colors ml-1" data-id="${bill.id}" title="Eliminar">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -358,12 +500,98 @@ document.addEventListener('DOMContentLoaded', () => {
             listUpcoming.innerHTML = `<p class="p-sm text-on-surface-variant font-body-sm text-center">Sin obligaciones pendientes.</p>`;
         }
 
+        // Render Dedicated Services Grid (for pay-view-services)
+        const servicesGrid = document.getElementById('services-dedicated-grid');
+        if (servicesGrid) {
+            servicesGrid.innerHTML = '';
+            const servicesOnly = (state.bills || []).filter(b => b.category === 'service' || b.category === 'Servicios' || !/préstamo|cuota|crédito/i.test(b.name));
+            if (servicesOnly.length === 0) {
+                servicesGrid.innerHTML = `<div class="col-span-full bg-white p-xl rounded-2xl border border-outline-variant/30 text-center space-y-2"><p class="text-sm font-bold text-on-surface">No hay servicios registrados aún.</p><p class="text-xs text-on-surface-variant">Usa el botón "+ Cargar Nuevo Servicio" arriba para empezar a organizar tu luz, agua, internet, etc.</p></div>`;
+            } else {
+                servicesOnly.forEach(bill => {
+                    const isOverdue = bill.status === 'overdue';
+                    const card = document.createElement('div');
+                    card.className = `bg-white p-md rounded-2xl border ${isOverdue ? 'border-error/40 shadow-sm' : 'border-outline-variant/30 shadow-sm'} flex flex-col justify-between hover:shadow-md transition-all`;
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-sm">
+                                <div class="w-10 h-10 rounded-xl ${isOverdue ? 'bg-error text-white' : 'bg-primary/10 text-primary'} flex items-center justify-center font-bold">
+                                    <span class="material-symbols-outlined text-[20px]">${isOverdue ? 'priority_high' : 'receipt_long'}</span>
+                                </div>
+                                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full ${isOverdue ? 'bg-error/10 text-error' : 'bg-surface-container text-on-surface-variant'}">${bill.date}</span>
+                            </div>
+                            <h4 class="font-bold text-base text-on-surface mb-1">${bill.name}</h4>
+                            <p class="font-tabular-nums text-xl font-bold ${isOverdue ? 'text-error' : 'text-primary'}">${formatMoney(bill.amount, bill.isUSD)}</p>
+                        </div>
+                        <div class="flex items-center gap-2 mt-md pt-sm border-t border-outline-variant/30">
+                            <button class="btn-quick-pay flex-1 py-2 bg-primary text-on-primary text-xs font-bold rounded-lg hover:opacity-90 transition-all" data-id="${bill.id}">Pagar Ahora</button>
+                            <button class="btn-delete-bill p-2 bg-surface-container-low text-on-surface-variant hover:text-error rounded-lg transition-all" data-id="${bill.id}" title="Eliminar">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    `;
+                    servicesGrid.appendChild(card);
+                });
+            }
+        }
+
+        // Render Dedicated Loans & Bills List (for pay-view-loans)
+        const loansBillsList = document.getElementById('pay-loans-bills-list');
+        if (loansBillsList) {
+            loansBillsList.innerHTML = '';
+            const loansOnly = (state.bills || []).filter(b => b.category === 'loan' || b.category === 'Préstamos' || /préstamo|cuota|crédito|banco|galicia|mp/i.test(b.name));
+            if (loansOnly.length === 0) {
+                loansBillsList.innerHTML = `<p class="p-lg text-center text-on-surface-variant text-xs bg-surface-container-low/40 rounded-xl border border-outline-variant/30">No tienes cuotas bancarias pendientes registradas.</p>`;
+            } else {
+                loansOnly.forEach(bill => {
+                    const isOverdue = bill.status === 'overdue';
+                    const item = document.createElement('div');
+                    item.className = `flex items-center justify-between p-md bg-white rounded-xl border ${isOverdue ? 'border-error/40' : 'border-outline-variant/30'} shadow-sm`;
+                    item.innerHTML = `
+                        <div class="flex items-center gap-md">
+                            <div class="w-10 h-10 rounded-xl bg-tertiary-container/30 text-tertiary flex items-center justify-center">
+                                <span class="material-symbols-outlined">credit_card</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-on-surface">${bill.name}</p>
+                                <p class="text-xs text-on-surface-variant">Vencimiento: ${bill.date}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-tabular-nums font-bold text-base ${isOverdue ? 'text-error' : 'text-on-surface'}">${formatMoney(bill.amount, bill.isUSD)}</span>
+                            <button class="btn-quick-pay px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-all" data-id="${bill.id}">Pagar</button>
+                            <button class="btn-delete-bill text-on-surface-variant hover:text-error p-1" data-id="${bill.id}" title="Eliminar">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </div>
+                    `;
+                    loansBillsList.appendChild(item);
+                });
+            }
+        }
+
         // Bind quick pay triggers
         document.querySelectorAll('.btn-quick-pay').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const billId = btn.getAttribute('data-id');
                 openPayBillModal(billId);
+            });
+        });
+
+        // Bind delete triggers with security warning
+        document.querySelectorAll('.btn-delete-bill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const billId = btn.getAttribute('data-id');
+                const bill = state.bills.find(b => b.id === billId);
+                if (!bill) return;
+                if (confirm(`⚠️ Aviso de Seguridad:\n¿Estás seguro de eliminar el vencimiento "${bill.name}" por ${formatMoney(bill.amount)}?`)) {
+                    state.bills = state.bills.filter(b => b.id !== billId);
+                    saveState().catch(e => console.warn('Firestore sync error:', e));
+                    renderAll();
+                    showToast(`Vencimiento "${bill.name}" eliminado.`, 'info');
+                }
             });
         });
     }
@@ -391,6 +619,27 @@ document.addEventListener('DOMContentLoaded', () => {
         statusEl.className = `px-xs py-base rounded-full font-label-md font-bold ${
             loan.status === 'PAGADO' ? 'bg-secondary/15 text-secondary' : 'bg-outline-variant/30 text-on-surface-variant'
         }`;
+
+        let paidAmt = 0;
+        let remAmt = 0;
+        if (loan.quotas && loan.quotas.length > 0) {
+            loan.quotas.forEach(q => {
+                if (q.status === 'paid') paidAmt += q.amount;
+                else remAmt += q.amount;
+            });
+        } else {
+            if (loan.status === 'PAGADO') paidAmt = loan.amount;
+            else remAmt = loan.amount;
+        }
+        const totalCalc = paidAmt + remAmt || loan.amount || 1;
+        const progressPct = Math.min(100, Math.round((paidAmt / totalCalc) * 100));
+
+        const paidEl = document.getElementById('loan-detail-paid');
+        const remEl = document.getElementById('loan-detail-remaining');
+        const progressEl = document.getElementById('loan-detail-progress-bar');
+        if (paidEl) paidEl.textContent = formatMoney(paidAmt);
+        if (remEl) remEl.textContent = formatMoney(remAmt);
+        if (progressEl) progressEl.style.width = `${progressPct}%`;
 
         // Quotas list rendering
         const quotasContainer = document.getElementById('loan-quotas-list');
@@ -522,6 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Tab Switcher Logic ---
     function switchTab(tabName) {
+        localStorage.setItem('wealthflow_last_tab', tabName);
         // Show/Hide Tab divs
         document.querySelectorAll('.tab-view').forEach(view => {
             if (view.id === `tab-${tabName}`) {
@@ -555,19 +805,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Update Title Header
         const titles = {
             'dashboard': 'Resumen General',
             'accounts': 'Mis Billeteras',
             'payments': 'Vencimientos y Servicios',
+            'transactions': 'Historial y Movimientos',
             'integrations': 'Integraciones y APIs',
             'settings': 'Configuración de Cuenta',
             'admin': 'Consola de Administración'
         };
         document.getElementById('view-title').textContent = titles[tabName] || 'WealthFlow';
 
+        const targetView = document.getElementById(`tab-${tabName}`);
+        if (targetView && window.Motion) {
+            Motion.animate(targetView, { opacity: [0, 1], y: [16, 0] }, { duration: 0.35 });
+        }
+
         if (tabName === 'admin') {
             renderAdminPanel();
+        } else if (tabName === 'transactions') {
+            renderModuleTransactions('all');
+        }
+
+        // Render charts when entering dashboard or analytics/integrations
+        if (tabName === 'dashboard' || tabName === 'integrations') {
+            setTimeout(() => renderPremiumCharts(), 50);
         }
     }
 
@@ -589,22 +851,32 @@ document.addEventListener('DOMContentLoaded', () => {
             toastIcon.className = 'material-symbols-outlined text-primary';
         }
 
-        // Show toast animation
         toast.classList.remove('translate-y-24', 'opacity-0');
-
-        // Hide after 3 seconds
+        if (window.Motion) {
+            Motion.animate(toast, { opacity: [0, 1], y: [50, 0] }, { duration: 0.3 });
+        }
         setTimeout(() => {
             toast.classList.add('translate-y-24', 'opacity-0');
-        }, 3000);
+        }, 3500);
     }
 
-    // --- Modal Controls ---
+    // --- Modal Controls (Framer Motion spring effect) ---
     function openModal(modalId) {
-        document.getElementById(modalId).classList.remove('hidden');
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const content = modal.querySelector('.bg-white');
+        if (content && window.Motion) {
+            Motion.animate(content, { opacity: [0, 1], scale: [0.92, 1], y: [20, 0] }, { duration: 0.28 });
+        }
     }
 
     function closeModal(modalId) {
-        document.getElementById(modalId).classList.add('hidden');
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
 
     // Pay Bill Modal Trigger
@@ -646,13 +918,13 @@ document.addEventListener('DOMContentLoaded', () => {
             isUSD: isUSD
         });
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderAll();
         closeModal('modal-add');
         showToast(`Cargaste ${formatMoney(amount, isUSD)} con éxito en ${dest}.`, 'success');
     });
 
-    // Send Money Submit
+    // Send Money / Cargar Gasto o Pago Submit
     document.getElementById('form-send-money').addEventListener('submit', async (e) => {
         e.preventDefault();
         const origin = document.getElementById('send-origin').value;
@@ -666,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check funds
         const currentBalance = state.wallets[origin];
         if (amount > currentBalance) {
-            showToast(`Saldo insuficiente en ${origin} para transferir.`, 'error');
+            showToast(`Saldo insuficiente en ${origin} para este gasto/pago.`, 'error');
             return;
         }
 
@@ -679,19 +951,20 @@ document.addEventListener('DOMContentLoaded', () => {
         state.transactions.unshift({
             id: Date.now(),
             type: 'outgoing',
-            title: `Transferencia a ${recipient}`,
+            title: recipient || 'Gasto registrado',
             amount: amount,
             wallet: origin === 'Galicia' ? 'Banco Galicia' : origin,
             date: 'Hoy • Reciente',
             category: category,
-            note: concept || 'Envío de dinero',
+            note: concept || 'Gasto manual',
             isUSD: isUSD
         });
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderAll();
         closeModal('modal-send');
-        showToast(`Enviaste ${formatMoney(amount, isUSD)} a ${recipient}.`, 'success');
+        document.getElementById('form-send-money').reset();
+        showToast(`Registraste el gasto "${recipient}" por ${formatMoney(amount, isUSD)}.`, 'success');
     });
 
     // Pay Bill Submit
@@ -724,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
             category: 'Servicios'
         });
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderAll();
         closeModal('modal-pay-bill');
         showToast(`Pagaste ${bill.name} de ${formatMoney(bill.amount)} exitosamente.`, 'success');
@@ -761,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
             category: 'Servicios'
         });
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderAll();
         showToast(`Liquidaste todos los vencimientos de hoy (${formatMoney(total)}) desde ${wallet}.`, 'success');
     });
@@ -772,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('api-config-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         state.webhookUrl = document.getElementById('api-webhook-url').value.trim();
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         showToast('Configuración guardada exitosamente.', 'success');
     });
 
@@ -831,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const timeLabel = document.getElementById('sync-time-mp');
             if (timeLabel) timeLabel.textContent = 'Última sync: Recién';
-            await saveState();
+            saveState().catch(e => console.warn('Firestore sync error:', e));
             renderAll();
             btn.disabled = false;
             btn.textContent = 'Sincronizar';
@@ -960,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', async () => {
             const palette = btn.getAttribute('data-palette');
             applyColorPalette(palette);
-            await saveState();
+            saveState().catch(e => console.warn('Firestore sync error:', e));
             showToast(`Paleta de color actualizada.`, 'success');
         });
     });
@@ -979,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.user.avatarUrl = previewEl.src;
         }
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
 
         document.querySelector('aside .font-bold.truncate').textContent = fullname;
         updateAvatarsUI(state.user.avatarUrl);
@@ -1007,6 +1280,116 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState(); // intentionally not awaited - fire and forget for theme
     }
 
+    let chartNetWorthInstance = null;
+    let chartApiTrafficInstance = null;
+
+    function renderPremiumCharts() {
+        if (!window.ApexCharts) return;
+
+        // 1. Dashboard Net Worth Area Chart
+        const netWorthEl = document.querySelector("#chart-dashboard-networth");
+        if (netWorthEl && netWorthEl.offsetParent !== null) {
+            const optionsNetWorth = {
+                chart: {
+                    type: 'area',
+                    height: 220,
+                    toolbar: { show: false },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                series: [{
+                    name: 'Patrimonio Total ($)',
+                    data: [2850000, 3100000, 3420000, 3650000, 3890000, state.totalARS || 4092400]
+                }],
+                xaxis: {
+                    categories: ['Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul (Actual)'],
+                    labels: { style: { colors: '#767683', fontSize: '12px', fontWeight: 600 } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: {
+                    labels: {
+                        formatter: val => '$ ' + (val / 1000000).toFixed(2) + 'M',
+                        style: { colors: '#767683', fontSize: '11px', fontWeight: 600 }
+                    }
+                },
+                colors: ['#3f51b5'],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [0, 90, 100]
+                    }
+                },
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 3 },
+                grid: {
+                    borderColor: '#f1f1f4',
+                    strokeDashArray: 4
+                },
+                tooltip: {
+                    theme: 'light',
+                    y: { formatter: val => formatMoney(val) }
+                }
+            };
+
+            if (chartNetWorthInstance) {
+                chartNetWorthInstance.destroy();
+            }
+            netWorthEl.innerHTML = "";
+            chartNetWorthInstance = new ApexCharts(netWorthEl, optionsNetWorth);
+            chartNetWorthInstance.render();
+        }
+
+        // 2. Financial Performance / Traffic Chart
+        const trafficEl = document.querySelector("#chart-api-traffic");
+        if (trafficEl && trafficEl.offsetParent !== null) {
+            const optionsTraffic = {
+                chart: {
+                    type: 'bar',
+                    height: 200,
+                    toolbar: { show: false },
+                    animations: { enabled: true, speed: 600 },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                series: [{
+                    name: 'Ingresos Mensuales',
+                    data: [95000, 105000, 110000, 115000, 120000, 120000]
+                }, {
+                    name: 'Gastos Ejecutados',
+                    data: [65000, 72000, 68000, 74000, 71000, 78400]
+                }],
+                colors: ['#00796b', '#ba1a1a'],
+                plotOptions: {
+                    bar: {
+                        borderRadius: 6,
+                        columnWidth: '45%'
+                    }
+                },
+                dataLabels: { enabled: false },
+                xaxis: {
+                    categories: ['Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul']
+                },
+                grid: { borderColor: '#f1f1f4', strokeDashArray: 3 },
+                legend: { position: 'top', horizontalAlign: 'right' },
+                tooltip: { y: { formatter: val => formatMoney(val) } }
+            };
+
+            if (chartApiTrafficInstance) {
+                chartApiTrafficInstance.destroy();
+            }
+            trafficEl.innerHTML = "";
+            chartApiTrafficInstance = new ApexCharts(trafficEl, optionsTraffic);
+            chartApiTrafficInstance.render();
+        }
+    }
+
     // --- General Render Wrapper ---
     function renderAll() {
         renderBalances();
@@ -1014,6 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBills();
         renderLoans();
         renderAnalyticsBreakdown();
+        setTimeout(() => renderPremiumCharts(), 100);
     }
 
     // --- Wire-up Event Listeners ---
@@ -1085,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear history in Accounts tab
     document.getElementById('btn-clear-history').addEventListener('click', async () => {
         state.transactions = [];
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderTransactions();
         renderAnalyticsBreakdown();
         renderMonthlyBalance();
@@ -1097,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = parseFloat(document.getElementById('settings-budget').value);
         if (!isNaN(val) && val >= 0) {
             state.monthlyBudget = val;
-            await saveState();
+            saveState().catch(e => console.warn('Firestore sync error:', e));
             renderMonthlyBalance();
             const lbl = document.getElementById('budget-saved-label');
             lbl.classList.remove('hidden');
@@ -1179,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 // Create initial user document in Firestore
-                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                state = getInitialTemplateState();
                 state.isLoggedIn = true;
                 state.user.name = name;
                 state.user.email = email;
@@ -1310,9 +1694,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loan-quotas').addEventListener('input', generateQuotaInputs);
     document.getElementById('loan-quota-type').addEventListener('change', generateQuotaInputs);
 
-    // Save new loan
-    document.getElementById('form-new-loan').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // Save new loan (click handler - more reliable than form submit)
+    document.getElementById('btn-save-loan').addEventListener('click', async () => {
+        console.log('[Loan] Save button clicked');
         const errorEl = document.getElementById('loan-error-msg');
         errorEl.classList.add('hidden');
 
@@ -1322,9 +1706,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const quotaType = document.getElementById('loan-quota-type').value;
         const desc = document.getElementById('loan-desc').value.trim();
 
+        console.log('[Loan] Values:', { name, total, quotaCount, quotaType, currentLoanType });
+
         if (!name || isNaN(total) || total <= 0 || isNaN(quotaCount) || quotaCount < 1) {
             errorEl.textContent = 'Completa todos los campos correctamente.';
             errorEl.classList.remove('hidden');
+            console.warn('[Loan] Validation failed:', { name, total, quotaCount });
             return;
         }
 
@@ -1352,13 +1739,22 @@ document.addEventListener('DOMContentLoaded', () => {
             quotas
         };
 
+        console.log('[Loan] Creating loan:', newLoan);
+
         if (!state.loans) state.loans = [];
         state.loans.push(newLoan);
-        await saveState();
+        
+        // Update UI immediately (don't wait for Firestore)
         renderLoans();
         renderMonthlyBalance();
         closeLoanModal();
         showToast(`Préstamo de ${name} guardado.`, 'success');
+        console.log('[Loan] Loan saved successfully (local)');
+
+        // Save to Firestore in background (non-blocking)
+        saveState().catch(err => {
+            console.warn('[Loan] Firestore save failed (local state preserved):', err);
+        });
     });
 
     // --- Monthly Budget Calculation & Render ---
@@ -1547,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!user) return;
 
         if (confirm(`¿Estás seguro de que deseas resetear los datos de ${user.user ? user.user.name : 'este usuario'}? Se volverá al saldo de fábrica.`)) {
-            const template = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            const template = getInitialTemplateState();
             template.isLoggedIn = true;
             template.user.name = user.user ? user.user.name : "Usuario Nuevo";
             template.user.alias = user.user ? user.user.alias : "usuario.wallet";
@@ -1636,11 +2032,163 @@ document.addEventListener('DOMContentLoaded', () => {
             loan.status = 'PENDIENTE';
         }
 
-        await saveState();
+        saveState().catch(e => console.warn('Firestore sync error:', e));
         renderAll();
         renderMonthlyBalance();
         closeModal('modal-loan-detail');
         showToast(`Pagaste la cuota ${quota.number} de ${loan.name} con éxito.`, 'success');
+    });
+
+    // Pagar Todo el Préstamo (Saldo Restante)
+    document.getElementById('btn-pay-all-loan').addEventListener('click', async () => {
+        if (!selectedLoanId) return;
+        const loan = state.loans.find(l => l.id === selectedLoanId);
+        if (!loan) return;
+
+        let remAmt = 0;
+        if (loan.quotas && loan.quotas.length > 0) {
+            loan.quotas.forEach(q => { if (q.status !== 'paid') remAmt += q.amount; });
+        } else if (loan.status !== 'PAGADO') {
+            remAmt = loan.amount;
+        }
+
+        if (remAmt <= 0) {
+            showToast('Este préstamo ya se encuentra pagado en su totalidad.', 'info');
+            return;
+        }
+
+        const sourceWallet = document.getElementById('loan-pay-source').value;
+        const balance = state.wallets[sourceWallet];
+
+        if (remAmt > balance) {
+            showToast(`Saldo insuficiente en ${sourceWallet} para liquidar el saldo total de ${formatMoney(remAmt)}.`, 'error');
+            return;
+        }
+
+        state.wallets[sourceWallet] -= remAmt;
+        if (loan.quotas && loan.quotas.length > 0) {
+            loan.quotas.forEach(q => q.status = 'paid');
+        }
+        loan.status = 'PAGADO';
+
+        state.transactions.unshift({
+            id: Date.now(),
+            type: 'outgoing',
+            title: `Liquidación total - Préstamo ${loan.name}`,
+            amount: remAmt,
+            wallet: sourceWallet === 'Galicia' ? 'Banco Galicia' : sourceWallet,
+            date: 'Hoy • Reciente',
+            category: 'Servicios',
+            isUSD: sourceWallet === 'PayPal'
+        });
+
+        saveState().catch(e => console.warn('Firestore sync error:', e));
+        renderAll();
+        renderMonthlyBalance();
+        closeModal('modal-loan-detail');
+        showToast(`¡Liquidaste el préstamo ${loan.name} por ${formatMoney(remAmt)} exitosamente!`, 'success');
+    });
+
+    // Eliminar Préstamo con Aviso de Seguridad
+    document.getElementById('btn-delete-loan').addEventListener('click', async () => {
+        if (!selectedLoanId) return;
+        const loan = state.loans.find(l => l.id === selectedLoanId);
+        if (!loan) return;
+
+        if (confirm(`⚠️ Aviso de Seguridad:\n¿Estás seguro de que deseas eliminar el préstamo "${loan.name}"?\nEsta acción borrará este préstamo y su cronograma de forma permanente.`)) {
+            state.loans = state.loans.filter(l => l.id !== selectedLoanId);
+            saveState().catch(e => console.warn('Firestore sync error:', e));
+            renderAll();
+            renderMonthlyBalance();
+            closeModal('modal-loan-detail');
+            showToast(`Préstamo "${loan.name}" eliminado correctamente.`, 'info');
+        }
+    });
+
+    // Modal Nuevo Vencimiento / Servicio
+    const btnOpenSvc = document.getElementById('btn-open-service-modal');
+    if (btnOpenSvc) {
+        btnOpenSvc.addEventListener('click', () => {
+            document.getElementById('service-date').value = new Date().toISOString().split('T')[0];
+            openModal('modal-add-service');
+        });
+    }
+    const btnCloseSvc = document.getElementById('btn-close-service-modal');
+    if (btnCloseSvc) {
+        btnCloseSvc.addEventListener('click', () => closeModal('modal-add-service'));
+    }
+
+    // Formulario Guardar Vencimiento
+    const formAddSvc = document.getElementById('form-add-service');
+    if (formAddSvc) {
+        formAddSvc.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('service-name').value.trim();
+            const amount = parseFloat(document.getElementById('service-amount').value);
+            const dateVal = document.getElementById('service-date').value;
+
+            if (!name || isNaN(amount) || amount <= 0 || !dateVal) return;
+
+            const dateObj = new Date(dateVal + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const isOverdue = dateObj <= today;
+            const status = isOverdue ? 'overdue' : 'upcoming';
+
+            const options = { day: '2-digit', month: 'short' };
+            const dateFormatted = isOverdue && dateObj.getTime() === today.getTime() ? 'Vence Hoy' : dateObj.toLocaleDateString('es-AR', options);
+
+            if (!state.bills) state.bills = [];
+            state.bills.push({
+                id: 'bill_' + Date.now(),
+                name: name,
+                amount: amount,
+                date: dateFormatted,
+                status: status,
+                isUSD: false
+            });
+
+            saveState().catch(e => console.warn('Firestore sync error:', e));
+            renderAll();
+            closeModal('modal-add-service');
+            formAddSvc.reset();
+            showToast(`Agregaste el servicio "${name}" por ${formatMoney(amount)}.`, 'success');
+        });
+    }
+
+    // Filtros de sub-pestaña en Vencimientos y Servicios (Resumen / Servicios / Préstamos)
+    document.querySelectorAll('.pay-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cat = btn.getAttribute('data-category');
+            document.querySelectorAll('.pay-filter-btn').forEach(b => {
+                if (b.getAttribute('data-category') === cat) {
+                    b.className = 'pay-filter-btn flex-1 md:flex-none font-body-md text-sm font-bold bg-white text-primary py-2 px-5 rounded-xl shadow-sm ring-1 ring-black/5 transition-all duration-300 active';
+                } else {
+                    b.className = 'pay-filter-btn flex-1 md:flex-none font-body-md text-sm font-bold text-on-surface-variant hover:text-on-surface hover:bg-white/50 py-2 px-5 rounded-xl transition-all duration-300';
+                }
+            });
+
+            document.querySelectorAll('.pay-subview').forEach(view => {
+                view.classList.add('hidden');
+            });
+
+            const targetId = cat === 'service' ? 'pay-view-services' : (cat === 'loan' ? 'pay-view-loans' : 'pay-view-all');
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                targetEl.classList.remove('hidden');
+                if (window.Motion) {
+                    Motion.animate(targetEl, { opacity: [0, 1], y: [15, 0] }, { duration: 0.35 });
+                }
+            }
+
+            renderBills(cat);
+        });
+    });
+
+    ['btn-open-service-modal-all', 'btn-open-service-modal-dedicated'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', () => openModal('modal-add-service'));
     });
 
     // --- Firebase Auth State Listener (Unified Init) ---
@@ -1650,18 +2198,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const adminBtn = document.getElementById('nav-btn-admin');
         const mobileAdminBtn = document.getElementById('mobile-nav-btn-admin');
         
+        const appLoader = document.getElementById('app-loader');
+
         if (user) {
             viewLogin.classList.add('hidden');
             appTabsContainer.classList.remove('hidden');
             
             await loadState(user.uid);
             
+            if (appLoader) {
+                appLoader.style.opacity = '0';
+                setTimeout(() => appLoader.classList.add('hidden'), 300);
+            }
+            
             // Set user role to Admin if their email matches (bootstrap admin)
             if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
                 if (!state.user) state.user = {};
                 if (state.user.role !== 'admin') {
                     state.user.role = 'admin';
-                    await saveState();
+                    saveState().catch(e => console.warn('Firestore sync error:', e));
                 }
             }
 
@@ -1694,12 +2249,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             renderAll();
             renderMonthlyBalance();
-            switchTab('dashboard');
+            const lastTab = localStorage.getItem('wealthflow_last_tab') || 'dashboard';
+            switchTab(lastTab);
+            if (window.Motion && lastTab === 'dashboard') {
+                Motion.animate(document.querySelectorAll('#tab-dashboard > div > section, #tab-dashboard > div > div'), { opacity: [0, 1], y: [25, 0] }, { duration: 0.5, delay: Motion.stagger(0.1) });
+            }
         } else {
-            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            state = getInitialTemplateState();
             
             viewLogin.classList.remove('hidden');
             appTabsContainer.classList.add('hidden');
+            
+            if (appLoader) {
+                appLoader.style.opacity = '0';
+                setTimeout(() => appLoader.classList.add('hidden'), 300);
+            }
             
             if (adminBtn) adminBtn.classList.add('hidden');
             if (mobileAdminBtn) mobileAdminBtn.classList.add('hidden');

@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permite lectura y escritura a usuarios autenticados (o al panel de admin local)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

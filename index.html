@@ -9,6 +9,10 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <!-- Google Fonts & Material Symbols -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- ApexCharts (Recharts-style interactive charts) -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Motion One (Framer Motion web engine) -->
+    <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
     <script id="tailwind-config">
         tailwind.config = {
           darkMode: "class",
@@ -108,6 +112,10 @@
                 <span class="material-symbols-outlined">event_repeat</span>
                 <span class="font-body-md">Vencimientos</span>
             </button>
+            <button data-tab="transactions" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
+                <span class="material-symbols-outlined">swap_horiz</span>
+                <span class="font-body-md">Movimientos</span>
+            </button>
             <button data-tab="integrations" class="nav-btn w-full flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg text-left">
                 <span class="material-symbols-outlined">api</span>
                 <span class="font-body-md">Integraciones</span>
@@ -166,8 +174,17 @@
             </div>
         </header>
 
+        <!-- INITIAL LOADING SPLASH (Prevents Login Screen Flash) -->
+        <div id="app-loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface transition-opacity duration-300">
+            <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-lg animate-bounce">
+                <span class="material-symbols-outlined text-white text-3xl font-bold">account_balance_wallet</span>
+            </div>
+            <h1 class="font-headline-sm text-xl font-bold text-primary tracking-tight">WealthFlow</h1>
+            <p class="text-xs text-on-surface-variant mt-1 animate-pulse font-bold">Iniciando entorno seguro...</p>
+        </div>
+
         <!-- VIEW: Onboarding / Login (Shown if not logged in) -->
-        <div id="view-login" class="px-gutter py-md max-w-sm mx-auto mt-16 bg-white rounded-2xl shadow-[0px_8px_40px_-8px_rgba(26,35,126,0.18)] border border-outline-variant/30 space-y-md overflow-hidden">
+        <div id="view-login" class="hidden px-gutter py-md max-w-sm mx-auto mt-16 bg-white rounded-2xl shadow-[0px_8px_40px_-8px_rgba(26,35,126,0.18)] border border-outline-variant/30 space-y-md overflow-hidden">
             <!-- Logo / Brand header -->
             <div class="text-center pt-md pb-xs">
                 <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-sm shadow-lg">
@@ -297,6 +314,20 @@
                                     <span class="text-secondary font-bold">Activo</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Dashboard Net Worth Evolution Chart (ApexCharts / Recharts Style) -->
+                        <div class="bg-white p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 relative">
+                            <div class="flex justify-between items-center mb-sm">
+                                <div>
+                                    <h4 class="font-headline-sm text-on-surface">Evolución del Patrimonio</h4>
+                                    <p class="text-xs text-on-surface-variant">Proyección e historial de liquidez en tiempo real</p>
+                                </div>
+                                <span class="bg-secondary/15 text-secondary px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> En vivo
+                                </span>
+                            </div>
+                            <div id="chart-dashboard-networth" class="w-full h-56 mt-2"></div>
                         </div>
 
                         <!-- Savings Goals Progress Section -->
@@ -564,121 +595,152 @@
 
             <!-- TAB: Payments (Vencimientos) -->
             <div id="tab-payments" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
-                <!-- Top Filters -->
-                <div class="flex gap-md mb-lg border-b border-outline-variant pb-base overflow-x-auto">
-                    <button class="pay-filter-btn font-body-md text-body-md font-bold text-primary border-b-2 border-primary pb-sm px-base transition-all whitespace-nowrap active" data-category="all">Todos</button>
-                    <button class="pay-filter-btn font-body-md text-body-md text-on-surface-variant hover:text-primary pb-sm px-base transition-all whitespace-nowrap" data-category="loan">Préstamos</button>
-                    <button class="pay-filter-btn font-body-md text-body-md text-on-surface-variant hover:text-primary pb-sm px-base transition-all whitespace-nowrap" data-category="service">Servicios</button>
-                </div>
-
-                <!-- Budget & Monthly Balance Section -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-md mb-lg">
-                    <!-- Card: Monthly Budget Progress -->
-                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
-                        <div>
-                            <div class="flex justify-between items-center mb-xs">
-                                <span class="font-label-md text-outline uppercase tracking-wider">Presupuesto Mensual</span>
-                                <span class="text-xs font-bold text-primary" id="budget-percentage">0%</span>
-                            </div>
-                            <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface font-tabular-nums" id="budget-spent-ratio">$ 0 / $ 0</h4>
-                        </div>
-                        <div class="mt-md">
-                            <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
-                                <div id="budget-progress-bar" class="h-full bg-primary transition-all duration-300 w-[0%]"></div>
-                            </div>
-                            <p class="text-[10px] text-on-surface-variant mt-1" id="budget-status-text">Cargando presupuesto...</p>
-                        </div>
+                <!-- Top Header & Modern Capsule Switcher -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-md mb-lg border-b border-outline-variant pb-base">
+                    <div>
+                        <h2 class="font-headline-sm text-headline-sm font-bold text-primary">Vencimientos y Compromisos</h2>
+                        <p class="text-xs text-on-surface-variant">Administra tus servicios recurrentes, cuotas y préstamos personales de forma ordenada.</p>
                     </div>
-
-                    <!-- Card: Fixed Expenses -->
-                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
-                        <div>
-                            <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Fijos</span>
-                            <h4 class="font-headline-sm text-headline-sm font-bold text-error font-tabular-nums" id="total-fixed-expenses">$ 0,00</h4>
-                        </div>
-                        <p class="text-xs text-on-surface-variant mt-sm">Servicios recurrentes y cuotas de préstamos</p>
-                    </div>
-
-                    <!-- Card: Extraordinary Expenses -->
-                    <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
-                        <div>
-                            <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Extraordinarios</span>
-                            <h4 class="font-headline-sm text-headline-sm font-bold text-tertiary-container font-tabular-nums" id="total-extraordinary-expenses">$ 0,00</h4>
-                        </div>
-                        <p class="text-xs text-on-surface-variant mt-sm">Compras ocasionales, salidas y otros gastos</p>
-                    </div>
-
-                    <!-- Card: Actions (Create Loan) -->
-                    <div class="bg-primary/5 border border-primary/20 p-md rounded-xl flex flex-col justify-between items-stretch min-h-[120px]">
-                        <div>
-                            <h4 class="font-body-md font-bold text-primary">Gestión de Préstamos</h4>
-                            <p class="text-xs text-on-surface-variant mt-xs">Ingresa préstamos con cuotas fijas o variables.</p>
-                        </div>
-                        <button id="btn-open-loan-modal" type="button" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95 text-center text-sm">
-                            Nuevo Préstamo
+                    <div class="flex bg-surface-container/60 p-1.5 rounded-2xl border border-outline-variant/40 shadow-inner gap-1 w-full md:w-auto">
+                        <button class="pay-filter-btn flex-1 md:flex-none font-body-md text-sm font-bold bg-white text-primary py-2 px-5 rounded-xl shadow-sm ring-1 ring-black/5 transition-all duration-300 active" data-category="all">
+                            Resumen General
+                        </button>
+                        <button class="pay-filter-btn flex-1 md:flex-none font-body-md text-sm font-bold text-on-surface-variant hover:text-on-surface hover:bg-white/50 py-2 px-5 rounded-xl transition-all duration-300" data-category="service">
+                            Servicios
+                        </button>
+                        <button class="pay-filter-btn flex-1 md:flex-none font-body-md text-sm font-bold text-on-surface-variant hover:text-on-surface hover:bg-white/50 py-2 px-5 rounded-xl transition-all duration-300" data-category="loan">
+                            Préstamos y Cuotas
                         </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-                    <!-- Left stats column (4 cols) -->
-                    <div class="lg:col-span-4 space-y-md">
-                        <!-- Alert Summary -->
-                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
-                            <div class="flex items-center justify-between mb-sm">
-                                <h3 class="font-headline-sm text-headline-sm text-primary">Vence Hoy</h3>
-                                <span class="bg-error/10 text-error px-2 py-1 rounded text-xs font-bold tabular-nums" id="pay-today-count">02</span>
+                <!-- SUBVIEW 1: Resumen General (pay-view-all) -->
+                <div id="pay-view-all" class="pay-subview space-y-lg">
+                    <!-- Budget & Monthly Balance Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+                        <!-- Card: Monthly Budget Progress -->
+                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-center mb-xs">
+                                    <span class="font-label-md text-outline uppercase tracking-wider">Presupuesto Mensual</span>
+                                    <span class="text-xs font-bold text-primary" id="budget-percentage">0%</span>
+                                </div>
+                                <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface font-tabular-nums" id="budget-spent-ratio">$ 0 / $ 0</h4>
                             </div>
-                            <div class="space-y-sm" id="pay-today-list">
-                                <!-- Dynamic JS list -->
+                            <div class="mt-md">
+                                <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                                    <div id="budget-progress-bar" class="h-full bg-primary transition-all duration-300 w-[0%]"></div>
+                                </div>
+                                <p class="text-[10px] text-on-surface-variant mt-1" id="budget-status-text">Cargando presupuesto...</p>
                             </div>
-                            <button id="btn-pay-all-today" class="w-full mt-md py-sm bg-primary text-on-primary rounded-lg font-bold hover:opacity-90 transition-opacity">Pagar Todo Hoy</button>
                         </div>
 
-                        <!-- P2P Loans widget -->
-                        <div class="bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
-                            <h3 class="font-headline-sm text-headline-sm text-primary mb-md">Préstamos P2P</h3>
-                            <div class="space-y-md" id="pay-p2p-list">
-                                <!-- P2P entries via JS -->
+                        <!-- Card: Fixed Expenses -->
+                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                            <div>
+                                <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Fijos</span>
+                                <h4 class="font-headline-sm text-headline-sm font-bold text-error font-tabular-nums" id="total-fixed-expenses">$ 0,00</h4>
                             </div>
+                            <p class="text-xs text-on-surface-variant mt-sm">Servicios recurrentes y cuotas</p>
+                        </div>
+
+                        <!-- Card: Extraordinary Expenses -->
+                        <div class="bg-white p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(0,0,0,0.08)] border border-outline-variant/30 flex flex-col justify-between">
+                            <div>
+                                <span class="font-label-md text-outline uppercase tracking-wider block mb-xs">Gastos Extraordinarios</span>
+                                <h4 class="font-headline-sm text-headline-sm font-bold text-tertiary-container font-tabular-nums" id="total-extraordinary-expenses">$ 0,00</h4>
+                            </div>
+                            <p class="text-xs text-on-surface-variant mt-sm">Compras ocasionales y salidas</p>
                         </div>
                     </div>
 
-                    <!-- Right schedules column (8 cols) -->
-                    <div class="lg:col-span-8">
-                        <div class="bg-surface-container-lowest p-md lg:p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 min-h-[500px] flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center justify-between mb-lg">
-                                    <h3 class="font-headline-sm text-headline-sm text-primary">Cronograma de Pagos</h3>
-                                    <div class="flex items-center gap-sm text-on-surface-variant">
-                                        <span class="material-symbols-outlined text-[20px]">filter_list</span>
-                                        <span class="text-sm font-bold">Filtros</span>
-                                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+                        <!-- Left stats column (4 cols) -->
+                        <div class="lg:col-span-4 space-y-md">
+                            <!-- Alert Summary -->
+                            <div class="bg-surface-container-lowest p-md rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30">
+                                <div class="flex items-center justify-between mb-sm">
+                                    <h3 class="font-headline-sm text-headline-sm text-primary">Vence Hoy</h3>
+                                    <span class="bg-error/10 text-error px-2 py-1 rounded text-xs font-bold tabular-nums" id="pay-today-count">00</span>
                                 </div>
-                                <div class="space-y-lg">
-                                    <!-- Overdue group -->
-                                    <div id="group-overdue">
-                                        <div class="flex items-center gap-sm mb-md text-error">
-                                            <span class="material-symbols-outlined">warning</span>
-                                            <h4 class="text-xs font-bold uppercase tracking-widest">Vencidos (<span id="count-overdue">0</span>)</h4>
-                                        </div>
-                                        <div class="space-y-sm" id="list-overdue">
-                                            <!-- Dynamic items -->
-                                        </div>
-                                    </div>
+                                <div class="space-y-sm" id="pay-today-list"></div>
+                                <button id="btn-pay-all-today" class="w-full mt-md py-sm bg-primary text-on-primary rounded-lg font-bold hover:opacity-90 transition-opacity">Pagar Todo Hoy</button>
+                            </div>
+                        </div>
 
-                                    <!-- Upcoming group -->
-                                    <div id="group-upcoming">
-                                        <div class="flex items-center gap-sm mb-md text-primary">
-                                            <span class="material-symbols-outlined">schedule</span>
-                                            <h4 class="text-xs font-bold uppercase tracking-widest">Próximos (<span id="count-upcoming">0</span>)</h4>
+                        <!-- Right schedules column (8 cols) -->
+                        <div class="lg:col-span-8">
+                            <div class="bg-surface-container-lowest p-md lg:p-lg rounded-xl shadow-[0px_4px_20px_-4px_rgba(26,35,126,0.12)] border border-outline-variant/30 min-h-[450px] flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between mb-lg">
+                                        <h3 class="font-headline-sm text-headline-sm text-primary">Cronograma de Pagos</h3>
+                                        <button id="btn-open-service-modal-all" class="bg-primary text-on-primary text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1 hover:shadow-md transition-all active:scale-95">
+                                            <span class="material-symbols-outlined text-[16px]">add_circle</span> Nuevo Vencimiento
+                                        </button>
+                                    </div>
+                                    <div class="space-y-lg">
+                                        <div id="group-overdue">
+                                            <div class="flex items-center gap-sm mb-md text-error">
+                                                <span class="material-symbols-outlined">warning</span>
+                                                <h4 class="text-xs font-bold uppercase tracking-widest">Vencidos (<span id="count-overdue">0</span>)</h4>
+                                            </div>
+                                            <div class="space-y-sm" id="list-overdue"></div>
                                         </div>
-                                        <div class="space-y-sm" id="list-upcoming">
-                                            <!-- Dynamic items -->
+                                        <div id="group-upcoming">
+                                            <div class="flex items-center gap-sm mb-md text-primary">
+                                                <span class="material-symbols-outlined">schedule</span>
+                                                <h4 class="text-xs font-bold uppercase tracking-widest">Próximos (<span id="count-upcoming">0</span>)</h4>
+                                            </div>
+                                            <div class="space-y-sm" id="list-upcoming"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBVIEW 2: Servicios Recurrentes (pay-view-services) -->
+                <div id="pay-view-services" class="pay-subview hidden space-y-lg">
+                    <div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+                        <div>
+                            <h3 class="font-headline-sm text-headline-sm font-bold text-primary">Servicios de Argentina & Suscripciones</h3>
+                            <p class="text-xs text-on-surface-variant mt-1">Luz, agua, gas, internet, telefonía móvil y plataformas de streaming.</p>
+                        </div>
+                        <button id="btn-open-service-modal-dedicated" class="bg-primary text-on-primary text-sm font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all active:scale-95">
+                            <span class="material-symbols-outlined">add_circle</span> + Cargar Nuevo Servicio
+                        </button>
+                    </div>
+
+                    <div id="services-dedicated-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- SUBVIEW 3: Préstamos y Cuotas (pay-view-loans) -->
+                <div id="pay-view-loans" class="pay-subview hidden space-y-lg">
+                    <div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+                        <div>
+                            <h3 class="font-headline-sm text-headline-sm font-bold text-primary">Préstamos Personales (P2P) y Cuotas</h3>
+                            <p class="text-xs text-on-surface-variant mt-1">Lleva el control de créditos, dinero prestado a conocidos y cuotas bancarias.</p>
+                        </div>
+                        <button id="btn-open-loan-modal" type="button" class="bg-primary text-on-primary text-sm font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all active:scale-95">
+                            <span class="material-symbols-outlined">add_circle</span> + Nuevo Préstamo
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+                        <div class="bg-white p-lg rounded-2xl border border-outline-variant/30 shadow-sm">
+                            <h4 class="font-bold text-primary mb-md flex items-center gap-2">
+                                <span class="material-symbols-outlined">handshake</span> Préstamos Personales Activos
+                            </h4>
+                            <div class="space-y-md" id="pay-p2p-list"></div>
+                        </div>
+                        <div class="bg-white p-lg rounded-2xl border border-outline-variant/30 shadow-sm">
+                            <h4 class="font-bold text-primary mb-md flex items-center gap-2">
+                                <span class="material-symbols-outlined">credit_card</span> Cuotas Crediticias / Bancarias
+                            </h4>
+                            <div class="space-y-sm" id="pay-loans-bills-list"></div>
                         </div>
                     </div>
                 </div>
@@ -816,26 +878,18 @@
                             </div>
                         </div>
 
-                        <!-- Traffic chart placeholder -->
-                        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden relative min-h-[220px] flex flex-col justify-between">
-                            <h4 class="font-label-md text-on-surface-variant font-bold mb-md uppercase tracking-wider">Tráfico API (24h)</h4>
-                            <div class="flex items-end justify-between gap-base h-24">
-                                <div class="w-full bg-primary/20 rounded-t-sm h-[40%]" title="00:00"></div>
-                                <div class="w-full bg-primary/20 rounded-t-sm h-[35%]" title="04:00"></div>
-                                <div class="w-full bg-primary/20 rounded-t-sm h-[55%]" title="08:00"></div>
-                                <div class="w-full bg-primary/60 rounded-t-sm h-[85%]" title="12:00"></div>
-                                <div class="w-full bg-primary rounded-t-sm h-[100%]" title="16:00"></div>
-                                <div class="w-full bg-primary/80 rounded-t-sm h-[70%]" title="20:00"></div>
-                                <div class="w-full bg-primary/40 rounded-t-sm h-[45%]" title="24:00"></div>
-                            </div>
-                            <div class="mt-md flex justify-between items-center">
+                        <!-- Traffic & Financial Performance Chart -->
+                        <div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden relative min-h-[260px] flex flex-col justify-between">
+                            <h4 class="font-label-md text-on-surface-variant font-bold mb-xs uppercase tracking-wider">Rendimiento Financiero & Tráfico API (6 Meses)</h4>
+                            <div id="chart-api-traffic" class="w-full h-48 my-2"></div>
+                            <div class="mt-xs flex justify-between items-center border-t border-outline-variant/30 pt-sm">
                                 <div class="flex flex-col">
-                                    <span class="font-headline-sm text-headline-sm text-primary">12.4k</span>
-                                    <span class="font-label-md text-on-surface-variant">Llamadas totales</span>
+                                    <span class="font-headline-sm text-headline-sm text-primary">+ $1.250.400</span>
+                                    <span class="font-label-md text-on-surface-variant">Crecimiento Neto</span>
                                 </div>
                                 <div class="text-right">
-                                    <span class="font-body-sm text-secondary font-bold">99.98% Success</span>
-                                    <p class="font-label-md text-outline">Latency: 120ms</p>
+                                    <span class="font-body-sm text-secondary font-bold">99.98% Uptime</span>
+                                    <p class="font-label-md text-outline">Latencia local: 12ms</p>
                                 </div>
                             </div>
                         </div>
@@ -954,6 +1008,44 @@
                 </div>
             </div>
 
+            <!-- TAB: Transactions (Módulo de Movimientos: Gastos, Pagos, Fondos) -->
+            <div id="tab-transactions" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
+                <!-- Header & Filters -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md mb-lg border-b border-outline-variant pb-md">
+                    <div>
+                        <h2 class="font-headline-sm text-headline-sm font-bold text-primary">Módulo de Movimientos</h2>
+                        <p class="text-xs text-on-surface-variant mt-1">Historial desglosado de tus gastos, pagos de servicios e ingresos de fondos.</p>
+                    </div>
+                    <!-- Pestañas sub-filtro -->
+                    <div class="flex gap-xs bg-surface-container p-1 rounded-xl overflow-x-auto w-full sm:w-auto">
+                        <button class="tx-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-primary shadow-sm transition-all" data-filter="all">Todos</button>
+                        <button class="tx-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all" data-filter="outgoing">Gastos & Pagos</button>
+                        <button class="tx-filter-btn px-3 py-1.5 rounded-lg text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all" data-filter="incoming">Fondos & Cargas</button>
+                    </div>
+                </div>
+
+                <!-- Summary statistics pills -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-sm mb-lg">
+                    <div class="bg-white p-sm rounded-xl border border-outline-variant/30 flex justify-between items-center">
+                        <span class="text-xs font-bold text-on-surface-variant uppercase">Total Ingresos</span>
+                        <span id="tx-stat-in" class="font-bold text-secondary font-tabular-nums">$ 0,00</span>
+                    </div>
+                    <div class="bg-white p-sm rounded-xl border border-outline-variant/30 flex justify-between items-center">
+                        <span class="text-xs font-bold text-on-surface-variant uppercase">Total Egresos</span>
+                        <span id="tx-stat-out" class="font-bold text-error font-tabular-nums">$ 0,00</span>
+                    </div>
+                    <div class="bg-white p-sm rounded-xl border border-outline-variant/30 flex justify-between items-center">
+                        <span class="text-xs font-bold text-on-surface-variant uppercase">Balance Periodo</span>
+                        <span id="tx-stat-net" class="font-bold text-primary font-tabular-nums">$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Transactions List Container -->
+                <div id="module-tx-list" class="space-y-sm">
+                    <!-- Dinámicamente poblado por JS -->
+                </div>
+            </div>
+
             <!-- TAB: Admin (Panel de Administración) -->
             <div id="tab-admin" class="tab-view px-gutter pb-xl max-w-container-max mx-auto mt-xs hidden">
                 <div class="space-y-lg">
@@ -1025,9 +1117,13 @@
             <span class="material-symbols-outlined">account_balance_wallet</span>
             <span class="font-label-md text-label-md">Wallets</span>
         </button>
-        <button data-tab="payments" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
+        <button data-tab="payments" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant transition-all rounded-lg">
             <span class="material-symbols-outlined">receipt_long</span>
             <span class="font-label-md text-label-md">Bills</span>
+        </button>
+        <button data-tab="transactions" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant transition-all rounded-lg">
+            <span class="material-symbols-outlined">swap_horiz</span>
+            <span class="font-label-md text-label-md">Movs</span>
         </button>
         <button data-tab="integrations" class="mobile-nav-btn flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant transition-all rounded-lg">
             <span class="material-symbols-outlined">sync_alt</span>
@@ -1040,17 +1136,18 @@
     </nav>
 
     <!-- Modal: Send Money (Transferir) -->
+    <!-- Modal: Send Money / Cargar Gasto o Pago -->
     <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-send">
         <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
             <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-send">
                 <span class="material-symbols-outlined">close</span>
             </button>
-            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Enviar Transferencia</h3>
-            <p class="font-body-sm text-on-surface-variant mb-md">Transfiere dinero al instante de forma segura.</p>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Cargar Gasto / Pago</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Registra un gasto cotidiano, pago de servicio o movimiento.</p>
             <form id="form-send-money" class="space-y-sm">
                 <div>
-                    <label class="font-label-md text-on-surface-variant block mb-1">Origen de Fondos</label>
-                    <select id="send-origin" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
+                    <label class="font-label-md text-on-surface-variant block mb-1">Billetera / Origen de Fondos</label>
+                    <select id="send-origin" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-bold">
                         <option value="Galicia">Banco Galicia</option>
                         <option value="MercadoPago">MercadoPago</option>
                         <option value="PayPal">PayPal</option>
@@ -1058,28 +1155,31 @@
                     </select>
                 </div>
                 <div>
-                    <label class="font-label-md text-on-surface-variant block mb-1">Destinatario (Alias o CBU)</label>
-                    <input type="text" id="send-recipient" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. juan.perez" required/>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Concepto o Descripción</label>
+                    <input type="text" id="send-recipient" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Supermercado, Alquiler, Cena..." required/>
                 </div>
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Monto ($ o u$s)</label>
-                    <input type="number" step="0.01" min="1" id="send-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="0.00" required/>
+                    <input type="number" step="0.01" min="1" id="send-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-bold text-primary" placeholder="0.00" required/>
                 </div>
                 <div>
                     <label class="font-label-md text-on-surface-variant block mb-1">Categoría</label>
                     <select id="send-category" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md">
                         <option value="Alimentación">Alimentación</option>
                         <option value="Servicios">Servicios</option>
+                        <option value="Vivienda">Vivienda</option>
                         <option value="Ocio">Ocio</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Salud">Salud</option>
                         <option value="Otros" selected>Otros</option>
                     </select>
                 </div>
                 <div>
-                    <label class="font-label-md text-on-surface-variant block mb-1">Concepto / Comentario</label>
-                    <input type="text" id="send-concept" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Alquiler o Regalo"/>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Nota adicional (opcional)</label>
+                    <input type="text" id="send-concept" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" placeholder="ej. Pago cuota mensual"/>
                 </div>
                 <button type="submit" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
-                    Confirmar Envío
+                    Registrar Gasto / Pago
                 </button>
             </form>
         </div>
@@ -1203,7 +1303,7 @@
             </button>
             <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Nuevo Préstamo</h3>
             <p class="font-body-sm text-on-surface-variant mb-md">Registra un préstamo con cuotas fijas o variables.</p>
-            <form id="form-new-loan" class="space-y-md">
+            <form id="form-new-loan" class="space-y-md" novalidate>
                 <!-- Loan type -->
                 <div class="flex gap-sm">
                     <button type="button" data-loantype="payable" id="loan-type-payable" class="loan-type-btn flex-1 py-sm rounded-lg border-2 border-primary bg-primary text-on-primary font-bold text-sm transition-all">💸 Debo pagar</button>
@@ -1250,7 +1350,7 @@
                 <p id="loan-error-msg" class="text-xs text-error font-bold hidden"></p>
                 <div class="flex gap-sm pt-xs">
                     <button type="button" id="btn-cancel-loan" class="flex-1 border border-outline-variant text-on-surface-variant font-bold py-sm rounded-lg hover:bg-surface-container-low transition-all">Cancelar</button>
-                    <button type="submit" id="btn-save-loan" class="flex-1 bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">Guardar Préstamo</button>
+                    <button type="button" id="btn-save-loan" class="flex-1 bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">Guardar Préstamo</button>
                 </div>
             </form>
         </div>
@@ -1316,7 +1416,7 @@
 
     <!-- Modal: Loan Details & Quota Pay -->
     <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-loan-detail">
-        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal max-h-[90vh] overflow-y-auto">
             <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-loan-detail">
                 <span class="material-symbols-outlined">close</span>
             </button>
@@ -1324,32 +1424,60 @@
             <p class="font-body-sm text-on-surface-variant mb-md" id="loan-detail-subtitle">Cargado por Dennis A.</p>
             
             <div class="space-y-md">
-                <!-- Loan Summary Card -->
-                <div class="p-md rounded-lg bg-surface-container-low flex justify-between items-center">
-                    <div>
-                        <span class="text-xs text-on-surface-variant uppercase font-bold" id="loan-detail-type">Tipo</span>
-                        <p class="text-lg font-bold text-on-surface" id="loan-detail-amount">$ 0,00</p>
+                <!-- Loan Summary Card (Desglose de Saldos) -->
+                <div class="p-md rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-md">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[11px] text-on-surface-variant uppercase font-bold tracking-wider" id="loan-detail-type">Tipo</span>
+                            <span id="loan-detail-status" class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-bold">PENDIENTE</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-on-surface-variant uppercase font-bold block">Monto Original</span>
+                            <p class="text-xl font-extrabold text-on-surface font-tabular-nums" id="loan-detail-amount">$ 0,00</p>
+                        </div>
                     </div>
-                    <span id="loan-detail-status" class="px-xs py-base rounded-full font-label-md font-bold">PENDIENTE</span>
+
+                    <!-- Progress Bar & Desglose de Saldo -->
+                    <div class="pt-2 border-t border-outline-variant/30 space-y-2">
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-white p-2 rounded-lg border border-outline-variant/20">
+                                <span class="text-on-surface-variant font-bold block text-[10px] uppercase">Ya Pagado</span>
+                                <span class="font-extrabold text-secondary font-tabular-nums text-sm" id="loan-detail-paid">$ 0,00</span>
+                            </div>
+                            <div class="bg-white p-2 rounded-lg border border-outline-variant/20">
+                                <span class="text-on-surface-variant font-bold block text-[10px] uppercase">Saldo Restante</span>
+                                <span class="font-extrabold text-primary font-tabular-nums text-sm" id="loan-detail-remaining">$ 0,00</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-outline-variant/30 h-2 rounded-full overflow-hidden">
+                            <div id="loan-detail-progress-bar" class="bg-primary h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Quota Pay Section (if payable and has pending quotas) -->
-                <div id="loan-pay-section" class="p-md rounded-lg border border-outline-variant space-y-sm hidden">
-                    <p class="font-label-md text-on-surface font-bold">Pagar Siguiente Cuota</p>
-                    <div class="flex items-center justify-between">
+                <div id="loan-pay-section" class="p-md rounded-xl border border-outline-variant space-y-sm hidden bg-surface">
+                    <div class="flex justify-between items-center">
+                        <p class="font-label-md text-on-surface font-bold">Opciones de Pago</p>
+                        <select id="loan-pay-source" class="bg-white border border-outline-variant rounded-lg px-2 py-1 text-xs font-bold outline-none focus:border-primary">
+                            <option value="MercadoPago">MercadoPago</option>
+                            <option value="Galicia">Banco Galicia</option>
+                            <option value="Prex">Prex</option>
+                            <option value="PayPal">PayPal</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-center justify-between pt-1">
                         <div>
                             <p class="text-xs text-on-surface-variant font-bold" id="loan-next-quota-label">Cuota 1</p>
                             <p class="text-sm font-bold text-primary" id="loan-next-quota-amount">$ 0,00</p>
                         </div>
-                        <div class="flex items-center gap-xs">
-                            <select id="loan-pay-source" class="bg-background border border-outline-variant rounded-lg px-sm py-xs text-xs outline-none focus:border-primary">
-                                <option value="MercadoPago">MercadoPago</option>
-                                <option value="Galicia">Banco Galicia</option>
-                                <option value="Prex">Prex</option>
-                                <option value="PayPal">PayPal</option>
-                            </select>
-                            <button id="btn-pay-next-quota" class="bg-primary text-on-primary font-bold px-md py-xs rounded-lg text-xs hover:shadow-md transition-all active:scale-95">
+                        <div class="flex gap-2">
+                            <button id="btn-pay-next-quota" class="bg-primary text-on-primary font-bold px-3 py-1.5 rounded-lg text-xs hover:shadow-md transition-all active:scale-95">
                                 Pagar Cuota
+                            </button>
+                            <button id="btn-pay-all-loan" class="bg-secondary text-on-secondary font-bold px-3 py-1.5 rounded-lg text-xs hover:shadow-md transition-all active:scale-95">
+                                Pagar Todo
                             </button>
                         </div>
                     </div>
@@ -1362,7 +1490,67 @@
                         <!-- Dynamic quota lines -->
                     </div>
                 </div>
+
+                <!-- Delete Loan Action -->
+                <div class="pt-2 border-t border-outline-variant/40 flex justify-end">
+                    <button id="btn-delete-loan" type="button" class="text-xs text-error hover:text-error/80 font-bold flex items-center gap-1 transition-colors py-1">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                        Eliminar Préstamo (Aviso de seguridad)
+                    </button>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Service / Vencimiento (con Catálogo Argentino Predicible) -->
+    <div class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md" id="modal-add-service">
+        <div class="bg-white rounded-xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-md relative animate-modal">
+            <button class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" id="btn-close-service-modal">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="font-headline-sm text-headline-sm text-primary mb-xs">Nuevo Vencimiento / Servicio</h3>
+            <p class="font-body-sm text-on-surface-variant mb-md">Elige un servicio o escribe uno personalizado.</p>
+            
+            <form id="form-add-service" class="space-y-sm">
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Nombre del Servicio (lista predecible AR)</label>
+                    <input list="servicios-arg" id="service-name" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-bold" placeholder="ej. Edesur, AySA, Telecom..." required autocomplete="off" />
+                    <datalist id="servicios-arg">
+                        <option value="Edesur (Luz)">
+                        <option value="Edenor (Luz)">
+                        <option value="AySA (Agua y Saneamientos)">
+                        <option value="Metrogas (Gas)">
+                        <option value="Camuzzi Gas">
+                        <option value="Naturgy Ban (Gas)">
+                        <option value="Telecom / Personal (Internet / Móvil)">
+                        <option value="Claro Argentina (Móvil / Fibra)">
+                        <option value="Movistar / Tuenti (Móvil / Fibra)">
+                        <option value="Telecentro (Internet / TV)">
+                        <option value="Flow / Cablevisión">
+                        <option value="DirecTV">
+                        <option value="VTV (Verificación Vehicular)">
+                        <option value="Patente Automotor (ARBA / AGIP)">
+                        <option value="ABL / Impuesto Inmobiliario">
+                        <option value="Monotributo AFIP / ARCA">
+                        <option value="OSDE / Swiss Medical / Galeno">
+                        <option value="Seguro Automotor (La Caja / Sancor / Fed. Patronal)">
+                        <option value="Tarjeta Visa Resumen">
+                        <option value="Tarjeta Mastercard Resumen">
+                        <option value="Expensas / Alquiler">
+                    </datalist>
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Monto a Pagar ($)</label>
+                    <input type="number" step="0.01" min="1" id="service-amount" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md font-bold text-primary" placeholder="0.00" required />
+                </div>
+                <div>
+                    <label class="font-label-md text-on-surface-variant block mb-1">Fecha de Vencimiento</label>
+                    <input type="date" id="service-date" class="w-full bg-background border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all outline-none font-body-md" required />
+                </div>
+                <button type="submit" class="w-full mt-md bg-primary text-on-primary font-bold py-sm rounded-lg hover:shadow-lg transition-all active:scale-95">
+                    Guardar Vencimiento
+                </button>
+            </form>
         </div>
     </div>
 
