@@ -920,13 +920,22 @@
                                 </select>
                             </div>
                             <div class="flex items-center gap-md">
-                                <div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container flex items-center justify-center border-2 border-primary shrink-0 relative">
-                                    <img id="settings-avatar-preview" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar Preview"/>
+                                <div id="btn-open-avatar-modal" class="w-16 h-16 rounded-full overflow-hidden bg-surface-container flex items-center justify-center border-2 border-primary shrink-0 relative cursor-pointer group shadow-md" title="Haz clic para cambiar o recortar foto">
+                                    <img id="settings-avatar-preview" class="w-full h-full object-cover group-hover:scale-110 transition-transform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3" alt="Avatar Preview"/>
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </div>
                                 </div>
-                                <button type="button" id="btn-settings-random-avatar" class="bg-surface-container-high text-on-surface px-md py-sm rounded-lg font-bold hover:bg-surface-container-highest transition-all flex items-center gap-xs text-sm">
-                                    <span class="material-symbols-outlined text-[18px]">casino</span>
-                                    <span>Caricatura Aleatoria</span>
-                                </button>
+                                <div class="flex flex-col gap-2">
+                                    <button type="button" id="btn-open-avatar-modal-btn" class="bg-primary/10 text-primary px-md py-2 rounded-lg font-bold hover:bg-primary/20 transition-all flex items-center gap-2 text-sm shadow-sm">
+                                        <span class="material-symbols-outlined text-[18px]">add_a_photo</span>
+                                        <span>Cambiar Foto / Recortar</span>
+                                    </button>
+                                    <button type="button" id="btn-settings-random-avatar" class="bg-surface-container-high text-on-surface px-md py-1.5 rounded-lg font-bold hover:bg-surface-container-highest transition-all flex items-center gap-2 text-xs">
+                                        <span class="material-symbols-outlined text-[16px]">casino</span>
+                                        <span>Caricatura Aleatoria</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -1547,6 +1556,74 @@
                 </button>
             </form>
         </div>
+    </div>
+
+    <!-- Modal: Avatar Picker & Cropper -->
+    <div id="modal-avatar-picker" class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md">
+        <div class="bg-white rounded-2xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-xl max-h-[90vh] flex flex-col relative animate-modal overflow-y-auto">
+            <button type="button" class="absolute top-sm right-sm text-on-surface-variant hover:text-on-surface" onclick="closeModal('modal-avatar-picker')">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="flex items-center gap-sm mb-md pb-sm border-b border-outline-variant/30">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <span class="material-symbols-outlined">photo_camera</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-on-surface">Cambiar o Personalizar Avatar</h2>
+                    <p class="text-xs text-on-surface-variant">Sube y recorta tu propia foto o elige de nuestra galería en memoria.</p>
+                </div>
+            </div>
+
+            <!-- TAB SWITCHER: Subir foto vs Galería -->
+            <div class="flex gap-2 p-1 bg-surface-container-low rounded-xl mb-md">
+                <button type="button" id="tab-btn-avatar-upload" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white text-primary shadow-sm transition-all flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">upload_file</span> Subir y Recortar Foto
+                </button>
+                <button type="button" id="tab-btn-avatar-gallery" class="flex-1 py-2 text-xs font-bold rounded-lg text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">collections_bookmark</span> Galería en Memoria
+                </button>
+            </div>
+
+            <!-- SECCIÓN 1: Subir y Recortar Foto -->
+            <div id="avatar-section-upload" class="space-y-md">
+                <div class="border-2 border-dashed border-outline-variant rounded-xl p-md text-center bg-surface-container-lowest hover:border-primary transition-colors cursor-pointer" id="avatar-upload-dropzone">
+                    <input type="file" id="avatar-file-input" accept="image/*" class="hidden">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-1">add_a_photo</span>
+                    <p class="text-sm font-bold text-on-surface">Haz clic para seleccionar una imagen desde tu PC</p>
+                    <p class="text-xs text-on-surface-variant">Soporta JPG, PNG o WEBP. Podrás encuadrarla y recortarla en un círculo perfecto.</p>
+                </div>
+
+                <!-- Canvas Cropper Preview -->
+                <div id="avatar-cropper-container" class="hidden flex-col items-center gap-sm bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Mueve la imagen para centrar y ajusta el zoom</p>
+                    <div class="relative w-48 h-48 rounded-full overflow-hidden border-4 border-primary shadow-inner bg-black flex items-center justify-center cursor-move" id="avatar-crop-viewport">
+                        <canvas id="avatar-crop-canvas" width="256" height="256" class="w-full h-full block"></canvas>
+                    </div>
+                    <div class="flex items-center gap-3 w-full max-w-xs mt-2">
+                        <span class="material-symbols-outlined text-sm text-on-surface-variant">zoom_out</span>
+                        <input type="range" id="avatar-zoom-slider" min="1" max="3" step="0.05" value="1" class="w-full accent-primary">
+                        <span class="material-symbols-outlined text-sm text-on-surface-variant">zoom_in</span>
+                    </div>
+                    <button type="button" id="btn-apply-crop" class="mt-2 bg-secondary text-on-secondary font-bold px-lg py-2.5 rounded-xl hover:shadow-md transition-all text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">check_circle</span> Aplicar Recorte Personalizado
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: Galería en Memoria (Preset Avatars) -->
+            <div id="avatar-section-gallery" class="hidden space-y-md">
+                <p class="text-xs text-on-surface-variant leading-relaxed">Estas fotos de perfil ejecutivas, 3D e ilustradas están almacenadas de forma local en la memoria de la aplicación para que puedas intercambiarlas en cualquier dispositivo o momento:</p>
+                <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1" id="preset-avatars-grid">
+                    <!-- Dinámico desde JS -->
+                </div>
+            </div>
+
+            <div class="mt-md pt-sm border-t border-outline-variant/30 flex justify-end gap-sm">
+                <button type="button" onclick="closeModal('modal-avatar-picker')" class="px-md py-sm rounded-lg font-bold text-on-surface-variant hover:bg-surface-container">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Papelera de Reciclaje -->
     <div id="modal-trash" class="modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-md">
         <div class="bg-white rounded-2xl shadow-2xl p-lg border border-outline-variant/30 w-full max-w-xl max-h-[85vh] flex flex-col relative">

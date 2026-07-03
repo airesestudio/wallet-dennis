@@ -946,17 +946,32 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.style.transform = 'translateY(0px)';
         toast.classList.remove('translate-y-24', 'opacity-0');
         
-        if (window.Motion) {
-            Motion.animate(toast, { opacity: [0, 1], y: [40, 0] }, { duration: 0.25 });
+        if (window.Motion && typeof Motion.animate === 'function') {
+            try { Motion.animate(toast, { opacity: [0, 1], y: [40, 0] }, { duration: 0.25 }); } catch(e) {}
         }
 
         const hideToast = () => {
-            if (window.Motion) {
-                Motion.animate(toast, { opacity: [1, 0], y: [0, 40] }, { duration: 0.25 }).finished.then(() => {
+            if (window.Motion && typeof Motion.animate === 'function') {
+                try {
+                    const anim = Motion.animate(toast, { opacity: [1, 0], y: [0, 40] }, { duration: 0.25 });
+                    if (anim && anim.finished && typeof anim.finished.then === 'function') {
+                        anim.finished.then(() => {
+                            toast.classList.add('translate-y-24', 'opacity-0');
+                            toast.style.opacity = '';
+                            toast.style.transform = '';
+                        });
+                    } else {
+                        setTimeout(() => {
+                            toast.classList.add('translate-y-24', 'opacity-0');
+                            toast.style.opacity = '';
+                            toast.style.transform = '';
+                        }, 250);
+                    }
+                } catch(e) {
                     toast.classList.add('translate-y-24', 'opacity-0');
                     toast.style.opacity = '';
                     toast.style.transform = '';
-                });
+                }
             } else {
                 toast.classList.add('translate-y-24', 'opacity-0');
                 toast.style.opacity = '';
@@ -975,8 +990,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         const content = modal.querySelector('.bg-white');
-        if (content && window.Motion) {
-            Motion.animate(content, { opacity: [0, 1], scale: [0.92, 1], y: [20, 0] }, { duration: 0.28 });
+        if (content && window.Motion && typeof Motion.animate === 'function') {
+            try { Motion.animate(content, { opacity: [0, 1], scale: [0.92, 1], y: [20, 0] }, { duration: 0.28 }); } catch(e) {}
         }
     }
 
@@ -1292,11 +1307,203 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Random avatar button click
-    document.getElementById('btn-settings-random-avatar').addEventListener('click', () => {
-        const gender = document.getElementById('settings-gender').value;
-        generateRandomAvatar(gender);
-        showToast('¡Nueva caricatura generada!', 'success');
-    });
+    const randomBtn = document.getElementById('btn-settings-random-avatar');
+    if (randomBtn) {
+        randomBtn.addEventListener('click', () => {
+            const gender = document.getElementById('settings-gender').value;
+            generateRandomAvatar(gender);
+            showToast('¡Nueva caricatura generada!', 'success');
+        });
+    }
+
+    // --- SISTEMA DE AVATAR PICKER, RECORTADOR Y GALERÍA EN MEMORIA ---
+    const PRESET_AVATARS_MEMORY = [
+        { name: 'Google Original', category: 'Clásico', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIrxuohm3YM2dqkuFLPFnTyA7x9qCZHDOq8qCzBIn5-hzEjPCh1GMqnqyBxo6y0SZ-VpoE0Hvr_H1Ieg2fxc0dUuK8IlIR2CmJwmm9t5Xkom-g3463FT3F1vQrMfk-f71YlP_tRpLunQaulJqlzyxYBr9_J3Ipy8ekKI0qkN5_hjMHd8wsAlgqQTJrmn6SoJDDKjdzT2wyz-K9rE0ZFNVil5ij4DV2kBBQkTKtQ-cvKzDnuIwzLkt7iLmuIYZoKwxpMqFxfow9C5V3' },
+        { name: 'Ejecutivo Tech (3D)', category: '3D Pro', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80' },
+        { name: 'Inversor Financiero', category: 'Realista', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80' },
+        { name: 'Especialista Finanzas', category: 'Realista', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80' },
+        { name: 'Trader Moderno', category: 'Realista', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80' },
+        { name: 'Arquitecta Software', category: 'Realista', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80' },
+        { name: 'Micah Ilustrado 1', category: 'Ilustración', url: 'https://api.dicebear.com/7.x/micah/svg?seed=dennis_pro&backgroundColor=b6e3f4,c0aede,d1d4f9' },
+        { name: 'Micah Ilustrado 2', category: 'Ilustración', url: 'https://api.dicebear.com/7.x/micah/svg?seed=investor_pro&backgroundColor=ffdfbf,ffd5dc' },
+        { name: 'Lorelei Elegante', category: 'Ilustración', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=wallet_queen&backgroundColor=c0aede' },
+        { name: 'Bot Inversor AI', category: 'Crypto AI', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wealthflow_ai' },
+        { name: 'Adventurer Gold', category: 'Ilustración', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=gold_master' },
+        { name: 'Emoji Cool', category: 'Divertido', url: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=happy_wealth' }
+    ];
+
+    const btnOpenModalImg = document.getElementById('btn-open-avatar-modal');
+    const btnOpenModalBtn = document.getElementById('btn-open-avatar-modal-btn');
+    if (btnOpenModalImg) btnOpenModalImg.addEventListener('click', () => openModal('modal-avatar-picker'));
+    if (btnOpenModalBtn) btnOpenModalBtn.addEventListener('click', () => openModal('modal-avatar-picker'));
+
+    // Pestañas internas del modal Avatar
+    const tabUpload = document.getElementById('tab-btn-avatar-upload');
+    const tabGallery = document.getElementById('tab-btn-avatar-gallery');
+    const secUpload = document.getElementById('avatar-section-upload');
+    const secGallery = document.getElementById('avatar-section-gallery');
+
+    function switchAvatarTab(tab) {
+        if (tab === 'upload') {
+            tabUpload.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white text-primary shadow-sm transition-all flex items-center justify-center gap-1.5';
+            tabGallery.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-1.5';
+            secUpload.classList.remove('hidden');
+            secGallery.classList.add('hidden');
+        } else {
+            tabGallery.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-white text-primary shadow-sm transition-all flex items-center justify-center gap-1.5';
+            tabUpload.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-1.5';
+            secGallery.classList.remove('hidden');
+            secUpload.classList.add('hidden');
+            renderPresetGallery();
+        }
+    }
+
+    if (tabUpload) tabUpload.addEventListener('click', () => switchAvatarTab('upload'));
+    if (tabGallery) tabGallery.addEventListener('click', () => switchAvatarTab('gallery'));
+
+    // Render Galería en Memoria
+    function renderPresetGallery() {
+        const grid = document.getElementById('preset-avatars-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        PRESET_AVATARS_MEMORY.forEach(preset => {
+            const isSelected = state.user.avatarUrl === preset.url;
+            const item = document.createElement('div');
+            item.className = `p-2 rounded-xl border-2 transition-all cursor-pointer flex flex-col items-center gap-1 group ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-outline-variant/30 hover:border-primary/50 bg-white'}`;
+            item.innerHTML = `
+                <div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container border border-outline-variant/40 shrink-0 relative">
+                    <img src="${preset.url}" alt="${preset.name}" class="w-full h-full object-cover group-hover:scale-110 transition-transform"/>
+                    ${isSelected ? '<div class="absolute inset-0 bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-white text-sm">check_circle</span></div>' : ''}
+                </div>
+                <span class="text-[10px] font-bold text-on-surface text-center truncate w-full">${preset.name}</span>
+                <span class="text-[9px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-full">${preset.category}</span>
+            `;
+            item.addEventListener('click', () => {
+                state.user.avatarUrl = preset.url;
+                updateAvatarsUI(preset.url);
+                saveState().catch(e => console.warn('Firestore sync error:', e));
+                closeModal('modal-avatar-picker');
+                showToast(`Has cambiado tu avatar a "${preset.name}".`, 'success');
+            });
+            grid.appendChild(item);
+        });
+    }
+
+    // Interactive Recorte y Subida en Canvas
+    const dropzone = document.getElementById('avatar-upload-dropzone');
+    const fileInput = document.getElementById('avatar-file-input');
+    const cropperContainer = document.getElementById('avatar-cropper-container');
+    const cropCanvas = document.getElementById('avatar-crop-canvas');
+    const zoomSlider = document.getElementById('avatar-zoom-slider');
+    const btnApplyCrop = document.getElementById('btn-apply-crop');
+
+    let loadedImg = null;
+    let cropScale = 1;
+    let cropOffsetX = 0;
+    let cropOffsetY = 0;
+    let isDraggingCrop = false;
+    let startDragX = 0;
+    let startDragY = 0;
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                loadedImg = new Image();
+                loadedImg.onload = () => {
+                    cropperContainer.classList.remove('hidden');
+                    cropperContainer.classList.add('flex');
+                    dropzone.classList.add('hidden');
+                    // Reset zoom and offset
+                    cropScale = 1;
+                    cropOffsetX = 0;
+                    cropOffsetY = 0;
+                    if (zoomSlider) zoomSlider.value = 1;
+                    drawCropCanvas();
+                };
+                loadedImg.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function drawCropCanvas() {
+        if (!loadedImg || !cropCanvas) return;
+        const ctx = cropCanvas.getContext('2d');
+        const size = cropCanvas.width;
+        ctx.clearRect(0, 0, size, size);
+
+        // Draw image scaled and centered
+        const baseScale = Math.max(size / loadedImg.width, size / loadedImg.height);
+        const finalScale = baseScale * cropScale;
+        const dw = loadedImg.width * finalScale;
+        const dh = loadedImg.height * finalScale;
+        const dx = (size - dw) / 2 + cropOffsetX;
+        const dy = (size - dh) / 2 + cropOffsetY;
+
+        ctx.drawImage(loadedImg, dx, dy, dw, dh);
+    }
+
+    if (zoomSlider) {
+        zoomSlider.addEventListener('input', (e) => {
+            cropScale = parseFloat(e.target.value);
+            drawCropCanvas();
+        });
+    }
+
+    if (cropCanvas) {
+        cropCanvas.addEventListener('mousedown', (e) => {
+            isDraggingCrop = true;
+            startDragX = e.clientX - cropOffsetX;
+            startDragY = e.clientY - cropOffsetY;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingCrop) return;
+            cropOffsetX = e.clientX - startDragX;
+            cropOffsetY = e.clientY - startDragY;
+            drawCropCanvas();
+        });
+        window.addEventListener('mouseup', () => { isDraggingCrop = false; });
+
+        // Touch support
+        cropCanvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDraggingCrop = true;
+                startDragX = e.touches[0].clientX - cropOffsetX;
+                startDragY = e.touches[0].clientY - cropOffsetY;
+            }
+        }, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+            if (!isDraggingCrop || e.touches.length !== 1) return;
+            cropOffsetX = e.touches[0].clientX - startDragX;
+            cropOffsetY = e.touches[0].clientY - startDragY;
+            drawCropCanvas();
+        }, { passive: true });
+        window.addEventListener('touchend', () => { isDraggingCrop = false; });
+    }
+
+    if (btnApplyCrop) {
+        btnApplyCrop.addEventListener('click', () => {
+            if (!cropCanvas) return;
+            // Get final dataURL from canvas
+            const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.9);
+            state.user.avatarUrl = croppedDataUrl;
+            updateAvatarsUI(croppedDataUrl);
+            saveState().catch(e => console.warn('Firestore sync error:', e));
+            closeModal('modal-avatar-picker');
+            
+            // Reset modal state
+            cropperContainer.classList.add('hidden');
+            cropperContainer.classList.remove('flex');
+            dropzone.classList.remove('hidden');
+            fileInput.value = '';
+            showToast('¡Foto recortada y guardada exitosamente!', 'success');
+        });
+    }
+
 
     // Clicking avatar/profile area on Sidenav redirects to Settings
     const profileSidebarBlock = document.querySelector('aside .mt-auto');
