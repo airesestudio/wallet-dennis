@@ -1001,6 +1001,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }
+    window.openModal = openModal;
+    window.closeModal = closeModal;
 
     // Pay Bill Modal Trigger
     function openPayBillModal(billId) {
