@@ -2,8 +2,17 @@
    WEALTHFLOW - APPLICATION SCRIPT (STITCH INTEGRATED SPA LOGIC)
    ========================================================================== */
 
-// --- Firebase Configuration ---
-const firebaseConfig = {
+// --- Firebase Configuration (Dinamico Staging / Produccion) ---
+const isStaging = window.location.hostname.includes('stg') || window.location.hostname.includes('localhost');
+
+const firebaseConfig = isStaging ? {
+  projectId: "wallet-dennis-stg",
+  appId: "1:816625842508:web:74d721685b9bd1ed4bb7e9",
+  storageBucket: "wallet-dennis-stg.firebasestorage.app",
+  apiKey: "AIzaSyA3-IZ0JqVwOhXpD2rO9yP2V9MiyE2QF6c",
+  authDomain: "wallet-dennis-stg.firebaseapp.com",
+  messagingSenderId: "816625842508"
+} : {
   projectId: "wallet-dennis",
   appId: "1:518161630515:web:9b0f37bfdd673216892a46",
   storageBucket: "wallet-dennis.firebasestorage.app",
