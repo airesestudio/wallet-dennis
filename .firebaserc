@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "wallet-dennis"
+    "default": "wallet-dennis",
+    "staging": "wallet-dennis-stg"
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "wallet-dennis",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy:staging": "firebase deploy --only hosting -P staging && git add . && git commit -m \"Despliegue automatico a Staging\" && git push origin main",
+    "deploy:prod": "firebase deploy --only hosting -P default"
+  }
+}
