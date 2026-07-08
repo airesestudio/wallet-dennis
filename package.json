@@ -1,9 +1,10 @@
 {
-  "name": "wallet-dennis",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "deploy:staging": "firebase deploy --only hosting -P staging && git add . && git commit -m \"Despliegue automatico a Staging\" && git push origin main",
-    "deploy:prod": "firebase deploy --only hosting -P default"
-  }
+    "name":  "wallet-dennis",
+    "version":  "1.0.0",
+    "private":  true,
+    "scripts":  {
+                    "deploy:staging":  "firebase deploy --only hosting -P staging \u0026\u0026 git add . \u0026\u0026 git commit -m \"Despliegue automatico a Staging\" \u0026\u0026 git push origin main",
+                    "deploy:prod":  "firebase deploy --only hosting -P default",
+                    "predev":  "git add -A \u0026\u0026 git diff --cached --quiet || git commit -m \"auto-save\""
+                }
 }
