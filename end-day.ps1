@@ -21,5 +21,12 @@ if ($vite) {
     Write-Host "Servidor Vite detenido." -ForegroundColor Green
 }
 
+# Cerrar daemon de auto-save si está corriendo
+$daemon = Get-Process -Name "powershell" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match "auto-save" }
+if ($daemon) {
+    $daemon | Stop-Process -Force
+    Write-Host "Daemon auto-save detenido." -ForegroundColor Green
+}
+
 Write-Host ""
 Write-Host "Jornada cerrada. Todo en GitHub." -ForegroundColor Cyan
