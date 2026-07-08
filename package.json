@@ -5,6 +5,6 @@
     "scripts":  {
                     "deploy:staging":  "firebase deploy --only hosting -P staging \u0026\u0026 git add . \u0026\u0026 git commit -m \"Despliegue automatico a Staging\" \u0026\u0026 git push origin main",
                     "deploy:prod":  "firebase deploy --only hosting -P default",
-                    "predev":  "git add -A \u0026\u0026 git diff --cached --quiet || git commit -m \"auto-save\""
+                    "predev":  "git pull --rebase 2\u003enul \u0026 git add -A \u0026\u0026 git diff --cached --quiet || git commit -m \"auto-save\" \u0026 git push 2\u003enul"
                 }
 }
