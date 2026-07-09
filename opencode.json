@@ -1,5 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "theme": "dennis-theme",
-  "instructions": [".agents/AGENTS.md"]
+  "instructions": [".agents/AGENTS.md"],
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]}
+  }
 }
