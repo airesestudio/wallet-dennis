@@ -1,0 +1,31 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "brand": "#000666",
+    "brandDark": "#000444",
+    "brandLight": "#222888",
+    "bgDark": "#080814",
+    "bgPanel": "#10102A"
+  },
+  "theme": {
+    "primary": { "dark": "brandLight", "light": "brand" },
+    "secondary": { "dark": "brandLight", "light": "brandDark" },
+    "accent": { "dark": "brand", "light": "brandLight" },
+    "error": { "dark": "#FF4444", "light": "#CC0000" },
+    "warning": { "dark": "#FFA500", "light": "#CC8400" },
+    "success": { "dark": "#44CC44", "light": "#228B22" },
+    "info": { "dark": "brand", "light": "brand" },
+    "text": { "dark": "#E6E6F0", "light": "#080814" },
+    "textMuted": { "dark": "#8080AA", "light": "#404060" },
+    "background": { "dark": "bgDark", "light": "#F0F0FF" },
+    "backgroundPanel": { "dark": "bgPanel", "light": "#E0E0FF" },
+    "backgroundElement": { "dark": "#1A1A40", "light": "#CCCCFF" },
+    "border": { "dark": "#222250", "light": "#9999CC" },
+    "markdownLink": { "dark": "brandLight", "light": "brand" },
+    "syntaxKeyword": { "dark": "brandLight", "light": "brand" },
+    "syntaxFunction": { "dark": "#8888DD", "light": "#0004AA" },
+    "syntaxString": { "dark": "#66BB66", "light": "#228B22" },
+    "syntaxNumber": { "dark": "#FFA500", "light": "#CC8400" },
+    "syntaxComment": { "dark": "#6666AA", "light": "#5A5A80" }
+  }
+}

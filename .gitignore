@@ -1,5 +1,8 @@
-firebase-debug.log
-.gemini/
-.agents/
-firebase-service-account.json
-clave-firebase.json
+node_modules/
+dist/
+.env
+.env.local
+.env.staging
+.env.production
+.DS_Store
+*.log

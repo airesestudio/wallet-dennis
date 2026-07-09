@@ -3,9 +3,13 @@
     "version":  "1.0.0",
     "private":  true,
     "scripts":  {
-                    "deploy:staging":  "firebase deploy --only hosting -P staging \u0026\u0026 git add . \u0026\u0026 git commit -m \"Despliegue automatico a Staging\" \u0026\u0026 git push origin main",
-                    "deploy:prod":  "firebase deploy --only hosting -P default",
+                    "dev":  "vite",
+                    "dev:host":  "vite --host",
+                    "build":  "vite build",
+                    "preview":  "vite preview",
+                    "deploy:staging":  "vite build --mode staging \u0026\u0026 firebase deploy --only hosting -P staging \u0026\u0026 git add . \u0026\u0026 git commit -m \"Despliegue automatico a Staging\" \u0026\u0026 git push origin main",
+                    "deploy:prod":  "vite build --mode production \u0026\u0026 firebase deploy --only hosting -P production",
                     "predev":  "git pull --rebase 2\u003enul",
-                    "postdev":  "git add -A \u0026\u0026 git diff --cached --quiet || git commit -m \"auto-save fin jornada\" \u0026 git push"
+                    "postdev":  "git add -A \u0026\u0026 git diff --cached --quiet || git commit -m \"auto-save fin jornada\" \u0026\u0026 git push"
                 }
 }
